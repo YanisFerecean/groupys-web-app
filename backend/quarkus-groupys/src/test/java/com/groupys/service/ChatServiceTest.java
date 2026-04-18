@@ -62,14 +62,15 @@ class ChatServiceTest {
 
         ChatService service = new ChatService();
         service.userRepository = new StubUserRepository(Map.of(
-                me.clerkId, me,
-                other.clerkId, other
+            me.clerkId, me,
+            other.clerkId, other
         ), Map.of(
-                me.id, me,
-                other.id, other
+            me.id, me,
+            other.id, other
         ));
         service.conversationRepository = conversationRepository;
         service.messageRepository = messageRepository;
+        service.rateLimitingService = new RateLimitingService();
 
         MessageResDto result = service.sendMessage(existing.id, me.clerkId, "still here");
 

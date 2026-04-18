@@ -13,7 +13,6 @@ import com.groupys.repository.ConversationRepository;
 import com.groupys.repository.FriendshipRepository;
 import com.groupys.repository.MessageRepository;
 import com.groupys.repository.UserRepository;
-import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -24,7 +23,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -56,40 +54,8 @@ public class ChatService {
     @Inject
     ChatRedisStateService chatRedisStateService;
 
-    // ── Rate limiting ─────────────────────────────────────────────────────────
-
-    private static final int RATE_LIMIT_MAX = 20;
-    private static final long RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds
-    private static final ConcurrentHashMap<String, long[]> rateLimitMap = new ConcurrentHashMap<>();
-
-    private void checkRateLimit(UUID userId, String clerkId) {
-        if (redisRateLimitEnabled()) {
-            boolean allowed = chatRedisStateService.allowMessageSend(userId, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-            if (!allowed) {
-                throw new jakarta.ws.rs.ClientErrorException("Rate limit exceeded: too many messages", 429);
-            }
-            return;
-        }
-
-        long now = System.currentTimeMillis();
-        String key = userId != null ? userId.toString() : clerkId;
-        long[] bucket = rateLimitMap.compute(key, (k, v) -> {
-            if (v == null || now - v[1] >= RATE_LIMIT_WINDOW_MS) {
-                return new long[]{1, now};
-            }
-            v[0]++;
-            return v;
-        });
-        if (bucket[0] > RATE_LIMIT_MAX) {
-            throw new jakarta.ws.rs.ClientErrorException("Rate limit exceeded: too many messages", 429);
-        }
-    }
-
-    @Scheduled(every = "60s")
-    void evictStaleRateLimitEntries() {
-        long now = System.currentTimeMillis();
-        rateLimitMap.entrySet().removeIf(e -> now - e.getValue()[1] >= RATE_LIMIT_WINDOW_MS);
-    }
+    @Inject
+    RateLimitingService rateLimitingService;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -341,7 +307,7 @@ public class ChatService {
     @Transactional
     public MessageResDto sendMessage(UUID conversationId, String clerkId, String content) {
         User sender = requireUserByClerkId(clerkId);
-        checkRateLimit(sender.id, clerkId);
+        rateLimitingService.checkRateLimit(sender.id, clerkId);
         requireParticipant(conversationId, sender.id);
 
         Conversation conv = conversationRepository.findByIdOptional(conversationId)
@@ -483,10 +449,6 @@ public class ChatService {
 
     private boolean readModelWriteEnabled() {
         return flags != null && flags.readModelWriteEnabled();
-    }
-
-    private boolean redisRateLimitEnabled() {
-        return flags != null && flags.redisEnabled() && flags.redisChatRateLimitEnabled();
     }
 
     private boolean redisUnreadEnabled() {

@@ -117,9 +117,29 @@ class ChartServiceTest {
             throw new UnsupportedOperationException("Not used in this test");
         }
 
-        @Override
-        public LastFmTopArtistsResponse getTagTopArtists(String method, String tag, int limit, String apiKey, String format) {
-            throw new UnsupportedOperationException("Not used in this test");
-        }
+    @Override
+    public LastFmTopArtistsResponse getTagTopArtists(String method, String tag, int limit, String apiKey, String format) {
+        throw new UnsupportedOperationException("Not used in this test");
     }
+
+    @Override
+    public com.groupys.dto.lastfm.LastFmUserInfoResponse getUserInfo(String method, String user, String apiKey, String format) {
+        throw new UnsupportedOperationException("Not used in this test");
+    }
+
+    @Override
+    public com.groupys.dto.lastfm.LastFmUserTopTracksResponse getUserTopTracks(String method, String user, String period, int limit, String apiKey, String format) {
+        throw new UnsupportedOperationException("Not used in this test");
+    }
+
+    @Override
+    public com.groupys.dto.lastfm.LastFmUserTopAlbumsResponse getUserTopAlbums(String method, String user, String period, int limit, String apiKey, String format) {
+        throw new UnsupportedOperationException("Not used in this test");
+    }
+
+    @Override
+    public com.groupys.dto.lastfm.LastFmUserTopArtistsResponse getUserTopArtists(String method, String user, String period, int limit, String apiKey, String format) {
+        throw new UnsupportedOperationException("Not used in this test");
+    }
+}
 }
