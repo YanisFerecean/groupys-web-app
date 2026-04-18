@@ -194,7 +194,7 @@ export const FeedPostCard = memo(function FeedPostCard({
             <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
               <Image
                 src={post.triggerFriendProfileImage}
-                alt={post.triggerFriendUsername}
+                alt={post.triggerFriendUsername ?? "Friend"}
                 width={20}
                 height={20}
                 className="w-full h-full object-cover"
