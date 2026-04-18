@@ -5,6 +5,7 @@ import { Slot } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthTokenProvider } from '@/hooks/AuthTokenContext'
+import { QueryProvider } from '@/components/QueryProvider'
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans'
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!
@@ -21,7 +22,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
           <AuthTokenProvider>
-            <Slot />
+            <QueryProvider>
+              <Slot />
+            </QueryProvider>
           </AuthTokenProvider>
         </ClerkProvider>
       </SafeAreaProvider>

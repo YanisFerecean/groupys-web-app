@@ -25,10 +25,9 @@ public class FriendshipRepository implements PanacheRepositoryBase<Friendship, U
     }
 
     public List<Friendship> findAcceptedByUser(UUID userId) {
-        return list(
-            "(requester.id = ?1 OR recipient.id = ?1) AND status = ?2",
-            userId, Friendship.Status.ACCEPTED
-        );
+        return find("FROM Friendship f LEFT JOIN FETCH f.requester LEFT JOIN FETCH f.recipient " +
+            "WHERE (f.requester.id = ?1 OR f.recipient.id = ?1) AND f.status = ?2",
+            userId, Friendship.Status.ACCEPTED).list();
     }
 
     public List<Friendship> findPendingReceivedBy(UUID recipientId) {

@@ -75,6 +75,7 @@ public class PostService {
     }
 
     @CacheResult(cacheName = "feed")
+    @Transactional
     public List<PostResDto> getFeed(String clerkId, int page, int size) {
         User user = userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new NotFoundException("User not found"));

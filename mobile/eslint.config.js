@@ -7,4 +7,10 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      'import/no-unresolved': ['error', { ignore: ['^@tanstack/react-query$'] }],
+    },
+  },
 ]);

@@ -13,7 +13,8 @@ import java.util.UUID;
 public class CommentRepository implements PanacheRepositoryBase<Comment, UUID> {
 
     public List<Comment> findByPost(UUID postId) {
-        return find("post.id", postId).list();
+        return find("FROM Comment c LEFT JOIN FETCH c.author LEFT JOIN FETCH c.post " +
+            "WHERE c.post.id = ?1 ORDER BY c.createdAt ASC", postId).list();
     }
 
     public long countByPost(UUID postId) {

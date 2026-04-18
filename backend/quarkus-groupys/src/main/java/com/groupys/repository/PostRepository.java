@@ -13,7 +13,8 @@ import java.util.UUID;
 public class PostRepository implements PanacheRepositoryBase<Post, UUID> {
 
     public List<Post> findByCommunity(UUID communityId) {
-        return find("community.id", Sort.descending("createdAt"), communityId).list();
+        return find("FROM Post p LEFT JOIN FETCH p.community LEFT JOIN FETCH p.author " +
+            "WHERE p.community.id = ?1 ORDER BY p.createdAt DESC", communityId).list();
     }
 
     public List<Post> findByCommunityPaged(UUID communityId, int page, int size) {
@@ -22,7 +23,8 @@ public class PostRepository implements PanacheRepositoryBase<Post, UUID> {
     }
 
     public List<Post> findByAuthor(UUID authorId) {
-        return find("author.id", Sort.descending("createdAt"), authorId).list();
+        return find("FROM Post p LEFT JOIN FETCH p.community LEFT JOIN FETCH p.author " +
+            "WHERE p.author.id = ?1 ORDER BY p.createdAt DESC", authorId).list();
     }
 
     public List<Post> findByAuthorPaged(UUID authorId, int page, int size) {
@@ -43,14 +45,14 @@ public class PostRepository implements PanacheRepositoryBase<Post, UUID> {
 
     public List<Post> findLikedByUserPaged(UUID userId, int page, int size) {
         return getEntityManager().createQuery(
-                "SELECT p FROM Post p JOIN PostReaction r ON r.post.id = p.id " +
-                "WHERE r.user.id = :uid AND r.reactionType = 'like' " +
-                "ORDER BY r.createdAt DESC",
-                Post.class
+            "SELECT p FROM Post p LEFT JOIN FETCH p.community LEFT JOIN FETCH p.author " +
+            "JOIN PostReaction r ON r.post.id = p.id " +
+            "WHERE r.user.id = :uid AND r.reactionType = 'like' " +
+            "ORDER BY r.createdAt DESC", Post.class
         ).setParameter("uid", userId)
-                .setFirstResult(page * size)
-                .setMaxResults(size)
-                .getResultList();
+        .setFirstResult(page * size)
+        .setMaxResults(size)
+        .getResultList();
     }
   
     public List<Post> findByCommunitiesRecentLimited(List<UUID> communityIds, int limit) {
