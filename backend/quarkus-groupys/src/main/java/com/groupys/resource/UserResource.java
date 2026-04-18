@@ -23,6 +23,14 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.Parameter;
+import org.eclipse.microprofile.openapi.annotations.media.ArraySchema;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
@@ -59,37 +67,86 @@ public class UserResource {
     JsonWebToken jwt;
 
     @GET
+    @Operation(summary = "List all users", description = "Returns a list of all registered users")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "List of users retrieved successfully",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "401", description = "Unauthorized - authentication required")
+    })
     public List<UserResDto> list() {
         return userService.listAll();
     }
 
     @GET
     @Path("/search")
-    public List<UserResDto> search(@QueryParam("q") String query,
-                                   @QueryParam("limit") @DefaultValue("10") int limit) {
+    @Operation(summary = "Search users", description = "Search users by username or display name")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "Search results",
+                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserResDto.class)))),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public List<UserResDto> search(
+            @Parameter(description = "Search query", required = true) @QueryParam("q") String query,
+            @Parameter(description = "Maximum results to return", example = "10")
+            @QueryParam("limit") @DefaultValue("10") int limit) {
         return userService.search(jwt.getSubject(), query, limit);
     }
 
     @GET
     @Path("/{id: [0-9a-fA-F\\-]{36}}")
-    public UserResDto getById(@PathParam("id") UUID id) {
+    @Operation(summary = "Get user by ID", description = "Returns a single user by their UUID")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "User found",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public UserResDto getById(
+            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id) {
         return userService.getById(id);
     }
 
     @GET
     @Path("/username/{username}")
-    public UserResDto getByUsername(@PathParam("username") String username) {
+    @Operation(summary = "Get user by username", description = "Returns a single user by their username")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "User found",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public UserResDto getByUsername(
+            @Parameter(description = "Username", required = true) @PathParam("username") String username) {
         return userService.getByUsername(username);
     }
 
     @GET
     @Path("/clerk/{clerkId}")
-    public UserResDto getByClerkId(@PathParam("clerkId") String clerkId) {
+    @Operation(summary = "Get user by Clerk ID", description = "Returns a single user by their Clerk authentication ID")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "User found",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public UserResDto getByClerkId(
+            @Parameter(description = "Clerk authentication ID", required = true) @PathParam("clerkId") String clerkId) {
         return userService.getByClerkId(clerkId);
     }
 
     @POST
-    public Response create(@Valid UserCreateDto dto) {
+    @Operation(summary = "Create a new user", description = "Creates a new user with the provided details")
+    @APIResponses({
+        @APIResponse(responseCode = "201", description = "User created successfully",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "409", description = "User with this clerkId already exists"),
+        @APIResponse(responseCode = "400", description = "Invalid input"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public Response create(
+            @RequestBody(description = "User creation data", required = true,
+                         content = @Content(schema = @Schema(implementation = UserCreateDto.class)))
+            @Valid UserCreateDto dto) {
         if (userService.findByClerkId(dto.clerkId()).isPresent()) {
             return Response.status(Response.Status.CONFLICT)
                     .entity("{\"error\":\"User with this clerkId already exists\"}")
@@ -101,25 +158,58 @@ public class UserResource {
 
     @PUT
     @Path("/{id: [0-9a-fA-F\\-]{36}}")
-    public UserResDto update(@PathParam("id") UUID id, @Valid UserUpdateDto dto) {
+    @Operation(summary = "Update user", description = "Updates an existing user's profile")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "User updated successfully",
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "400", description = "Invalid input"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public UserResDto update(
+            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id,
+            @RequestBody(description = "User update data", required = true,
+                         content = @Content(schema = @Schema(implementation = UserUpdateDto.class)))
+            @Valid UserUpdateDto dto) {
         return userService.update(id, dto);
     }
 
     @POST
     @Path("/{id: [0-9a-fA-F\\-]{36}}/follow")
-    public UserFollowResDto follow(@PathParam("id") UUID id) {
+    @Operation(summary = "Follow user", description = "Follow another user by their ID")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "User followed successfully",
+                     content = @Content(schema = @Schema(implementation = UserFollowResDto.class))),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "400", description = "Already following"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public UserFollowResDto follow(
+            @Parameter(description = "User UUID to follow", required = true) @PathParam("id") UUID id) {
         return discoveryService.followUser(jwt.getSubject(), id);
     }
 
     @DELETE
     @Path("/{id: [0-9a-fA-F\\-]{36}}")
-    public Response delete(@PathParam("id") UUID id) {
+    @Operation(summary = "Delete user", description = "Deletes a user by their UUID (admin only)")
+    @APIResponses({
+        @APIResponse(responseCode = "204", description = "User deleted successfully"),
+        @APIResponse(responseCode = "404", description = "User not found"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public Response delete(
+            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id) {
         userService.delete(id);
         return Response.noContent().build();
     }
 
     @DELETE
     @Path("/me")
+    @Operation(summary = "Delete own account", description = "Deletes the authenticated user's own account")
+    @APIResponses({
+        @APIResponse(responseCode = "204", description = "Account deleted successfully"),
+        @APIResponse(responseCode = "401", description = "Unauthorized")
+    })
     public Response deleteMe() {
         userService.deleteOwnAccount(jwt.getSubject());
         return Response.noContent().build();
