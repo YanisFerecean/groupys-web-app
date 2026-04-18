@@ -4,7 +4,7 @@ import com.groupys.config.PerformanceFeatureFlags;
 import com.groupys.model.CommunityRecommendationCache;
 import com.groupys.model.UserSimilarityCache;
 import com.groupys.model.User;
-import com.groupys.model.community.Community;
+import com.groupys.model.Community;
 import com.groupys.repository.CommunityRecommendationCacheRepository;
 import com.groupys.repository.UserSimilarityCacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;

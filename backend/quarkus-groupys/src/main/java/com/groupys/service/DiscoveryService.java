@@ -3,7 +3,7 @@ package com.groupys.service;
 import com.groupys.dto.*;
 import com.groupys.event.CommunityActivityEvent;
 import com.groupys.model.*;
-import com.groupys.model.community.Community;
+import com.groupys.model.Community;
 import com.groupys.repository.*;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;

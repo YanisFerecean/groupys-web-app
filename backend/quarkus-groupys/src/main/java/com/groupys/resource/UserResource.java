@@ -24,8 +24,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.Parameter;
-import org.eclipse.microprofile.openapi.annotations.media.ArraySchema;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -82,12 +80,11 @@ public class UserResource {
     @Operation(summary = "Search users", description = "Search users by username or display name")
     @APIResponses({
         @APIResponse(responseCode = "200", description = "Search results",
-                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserResDto.class)))),
+                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public List<UserResDto> search(
-            @Parameter(description = "Search query", required = true) @QueryParam("q") String query,
-            @Parameter(description = "Maximum results to return", example = "10")
+            @QueryParam("q") String query,
             @QueryParam("limit") @DefaultValue("10") int limit) {
         return userService.search(jwt.getSubject(), query, limit);
     }
@@ -102,7 +99,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public UserResDto getById(
-            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id) {
+            @PathParam("id") UUID id) {
         return userService.getById(id);
     }
 
@@ -116,7 +113,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public UserResDto getByUsername(
-            @Parameter(description = "Username", required = true) @PathParam("username") String username) {
+            @PathParam("username") String username) {
         return userService.getByUsername(username);
     }
 
@@ -130,7 +127,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public UserResDto getByClerkId(
-            @Parameter(description = "Clerk authentication ID", required = true) @PathParam("clerkId") String clerkId) {
+            @PathParam("clerkId") String clerkId) {
         return userService.getByClerkId(clerkId);
     }
 
@@ -167,7 +164,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public UserResDto update(
-            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id,
+            @PathParam("id") UUID id,
             @RequestBody(description = "User update data", required = true,
                          content = @Content(schema = @Schema(implementation = UserUpdateDto.class)))
             @Valid UserUpdateDto dto) {
@@ -185,7 +182,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public UserFollowResDto follow(
-            @Parameter(description = "User UUID to follow", required = true) @PathParam("id") UUID id) {
+            @PathParam("id") UUID id) {
         return discoveryService.followUser(jwt.getSubject(), id);
     }
 
@@ -198,7 +195,7 @@ public class UserResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public Response delete(
-            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID id) {
+            @PathParam("id") UUID id) {
         userService.delete(id);
         return Response.noContent().build();
     }

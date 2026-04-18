@@ -15,8 +15,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.Parameter;
-import org.eclipse.microprofile.openapi.annotations.media.ArraySchema;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -48,13 +46,11 @@ public class DiscoveryResource {
     @Operation(summary = "Get suggested communities", description = "Returns community recommendations for the authenticated user")
     @APIResponses({
         @APIResponse(responseCode = "200", description = "List of suggested communities",
-                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = SuggestedCommunityResDto.class)))),
+                     content = @Content(schema = @Schema(implementation = SuggestedCommunityResDto.class))),
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public List<SuggestedCommunityResDto> suggestedCommunities(
-            @Parameter(description = "Maximum number of recommendations", example = "20")
             @DefaultValue("20") @QueryParam("limit") int limit,
-            @Parameter(description = "Force refresh of recommendations", example = "false")
             @DefaultValue("false") @QueryParam("refresh") boolean refresh) {
         return discoveryService.getSuggestedCommunities(jwt.getSubject(), limit, refresh);
     }
@@ -64,13 +60,11 @@ public class DiscoveryResource {
     @Operation(summary = "Get suggested users", description = "Returns user recommendations for the authenticated user based on taste similarity")
     @APIResponses({
         @APIResponse(responseCode = "200", description = "List of suggested users",
-                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = SuggestedUserResDto.class)))),
+                     content = @Content(schema = @Schema(implementation = SuggestedUserResDto.class))),
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public List<SuggestedUserResDto> suggestedUsers(
-            @Parameter(description = "Maximum number of recommendations", example = "20")
             @DefaultValue("20") @QueryParam("limit") int limit,
-            @Parameter(description = "Force refresh of recommendations", example = "false")
             @DefaultValue("false") @QueryParam("refresh") boolean refresh) {
         return discoveryService.getSuggestedUsers(jwt.getSubject(), limit, refresh);
     }
@@ -84,8 +78,8 @@ public class DiscoveryResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public Response dismiss(
-            @Parameter(description = "Type of target (user or community)", required = true) @PathParam("targetType") String targetType,
-            @Parameter(description = "Target UUID", required = true) @PathParam("targetId") UUID targetId,
+            @PathParam("targetType") String targetType,
+            @PathParam("targetId") UUID targetId,
             @RequestBody(description = "Dismissal action details", required = true,
                          content = @Content(schema = @Schema(implementation = DiscoveryActionDto.class)))
             @Valid DiscoveryActionDto dto) {
@@ -104,7 +98,7 @@ public class DiscoveryResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public LikeResponseDto likeUser(
-            @Parameter(description = "User UUID to like", required = true) @PathParam("id") UUID targetId) {
+            @PathParam("id") UUID targetId) {
         return matchService.likeUser(jwt.getSubject(), targetId);
     }
 
@@ -117,7 +111,7 @@ public class DiscoveryResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public Response withdrawLike(
-            @Parameter(description = "User UUID", required = true) @PathParam("id") UUID targetId) {
+            @PathParam("id") UUID targetId) {
         matchService.withdrawLike(jwt.getSubject(), targetId);
         return Response.noContent().build();
     }
@@ -131,7 +125,7 @@ public class DiscoveryResource {
         @APIResponse(responseCode = "401", description = "Unauthorized")
     })
     public Response passUser(
-            @Parameter(description = "User UUID to pass on", required = true) @PathParam("id") UUID targetId) {
+            @PathParam("id") UUID targetId) {
         matchService.passUser(jwt.getSubject(), targetId);
         return Response.noContent().build();
     }

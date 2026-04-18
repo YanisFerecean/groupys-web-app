@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.groupys.model.*;
-import com.groupys.model.community.Community;
+import com.groupys.model.Community;
 import com.groupys.repository.ArtistRepository;
 import com.groupys.repository.GenreRepository;
 import com.groupys.util.CountryUtil;
@@ -65,7 +65,7 @@ public class ScoreCalculationService {
                 toScoreMap(candidateArtists, preference -> preference.normalizedScore));
     }
 
-    public double calculateArtistOverlapScore(
+    public double calculateCommunityArtistOverlapScore(
             Map<Long, UserArtistPreference> userArtists,
             Map<Long, CommunityArtist> communityArtists) {
         return DiscoveryScoreUtil.weightedOverlap(
@@ -81,7 +81,7 @@ public class ScoreCalculationService {
                 toScoreMap(candidateGenres, preference -> preference.normalizedScore));
     }
 
-    public double calculateGenreOverlapScore(
+    public double calculateCommunityGenreOverlapScore(
             Map<Long, UserGenrePreference> userGenres,
             Map<Long, CommunityGenre> communityGenres) {
         return DiscoveryScoreUtil.weightedOverlap(

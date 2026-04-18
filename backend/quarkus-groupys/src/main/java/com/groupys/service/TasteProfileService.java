@@ -2,7 +2,6 @@ package com.groupys.service;
 
 import com.groupys.config.PerformanceFeatureFlags;
 import com.groupys.model.*;
-import com.groupys.model.community.Community;
 import com.groupys.repository.*;
 import com.groupys.util.CountryUtil;
 import com.groupys.util.DiscoveryScoreUtil;
@@ -26,6 +25,7 @@ public class TasteProfileService {
     private final GenreRepository genreRepository;
     private final UserArtistPreferenceRepository userArtistPreferenceRepository;
     private final UserGenrePreferenceRepository userGenrePreferenceRepository;
+    private final UserTasteProfileRepository userTasteProfileRepository;
     private final CommunityTasteProfileRepository communityTasteProfileRepository;
     private final CommunityArtistRepository communityArtistRepository;
     private final CommunityGenreRepository communityGenreRepository;
@@ -45,6 +45,7 @@ public class TasteProfileService {
             GenreRepository genreRepository,
             UserArtistPreferenceRepository userArtistPreferenceRepository,
             UserGenrePreferenceRepository userGenrePreferenceRepository,
+            UserTasteProfileRepository userTasteProfileRepository,
             CommunityTasteProfileRepository communityTasteProfileRepository,
             CommunityArtistRepository communityArtistRepository,
             CommunityGenreRepository communityGenreRepository,
@@ -59,9 +60,10 @@ public class TasteProfileService {
         this.communityMemberRepository = communityMemberRepository;
         this.artistRepository = artistRepository;
         this.genreRepository = genreRepository;
-        this.userArtistPreferenceRepository = userArtistPreferenceRepository;
-        this.userGenrePreferenceRepository = userGenrePreferenceRepository;
-        this.communityTasteProfileRepository = communityTasteProfileRepository;
+            this.userArtistPreferenceRepository = userArtistPreferenceRepository;
+            this.userGenrePreferenceRepository = userGenrePreferenceRepository;
+            this.userTasteProfileRepository = userTasteProfileRepository;
+            this.communityTasteProfileRepository = communityTasteProfileRepository;
         this.communityArtistRepository = communityArtistRepository;
         this.communityGenreRepository = communityGenreRepository;
         this.postRepository = postRepository;

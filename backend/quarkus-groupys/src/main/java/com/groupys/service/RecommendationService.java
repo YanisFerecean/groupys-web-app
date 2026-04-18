@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.groupys.config.PerformanceFeatureFlags;
 import com.groupys.dto.*;
 import com.groupys.model.*;
-import com.groupys.model.community.Community;
+import com.groupys.model.Community;
 import com.groupys.repository.*;
 import com.groupys.util.DiscoveryScoreUtil;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -270,8 +270,8 @@ public class RecommendationService {
             Map<Long, CommunityGenre> communityGenres = communityGenreRepository.findByCommunity(community.id).stream()
                     .collect(Collectors.toMap(item -> item.genre.id, item -> item, (left, right) -> left, LinkedHashMap::new));
 
-            double artistScore = scoreCalculationService.calculateArtistOverlapScore(userArtists, communityArtists);
-            double genreScore = scoreCalculationService.calculateGenreOverlapScore(userGenres, communityGenres);
+        double artistScore = scoreCalculationService.calculateCommunityArtistOverlapScore(userArtists, communityArtists);
+        double genreScore = scoreCalculationService.calculateCommunityGenreOverlapScore(userGenres, communityGenres);
             long sharedMembers = sharedMembersMap.getOrDefault(community.id, 0L);
             double socialFit = scoreCalculationService.calculateSocialFit(sharedMembers, Math.max(1, community.memberCount));
             double activityFit = scoreCalculationService.calculateActivityFit(profile, community.memberCount);
