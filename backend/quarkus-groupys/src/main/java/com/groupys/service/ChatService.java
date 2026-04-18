@@ -33,43 +33,48 @@ public class ChatService {
     private static final String REQUEST_STATUS_PENDING_INCOMING = "PENDING_INCOMING";
     private static final String REQUEST_STATUS_PENDING_OUTGOING = "PENDING_OUTGOING";
 
-    @Inject
-    ConversationRepository conversationRepository;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
+    private final DiscoveryService discoveryService;
+    private final PerformanceFeatureFlags flags;
+    private final ChatRedisStateService chatRedisStateService;
+    private final RateLimitingService rateLimitingService;
 
     @Inject
-    MessageRepository messageRepository;
-
-    @Inject
-    UserRepository userRepository;
-
-    @Inject
-    FriendshipRepository friendshipRepository;
-
-    @Inject
-    DiscoveryService discoveryService;
-
-    @Inject
-    PerformanceFeatureFlags flags;
-
-    @Inject
-    ChatRedisStateService chatRedisStateService;
-
-    @Inject
-    RateLimitingService rateLimitingService;
+    public ChatService(
+            ConversationRepository conversationRepository,
+            MessageRepository messageRepository,
+            UserRepository userRepository,
+            FriendshipRepository friendshipRepository,
+            DiscoveryService discoveryService,
+            PerformanceFeatureFlags flags,
+            ChatRedisStateService chatRedisStateService,
+            RateLimitingService rateLimitingService) {
+        this.conversationRepository = conversationRepository;
+        this.messageRepository = messageRepository;
+        this.userRepository = userRepository;
+        this.friendshipRepository = friendshipRepository;
+        this.discoveryService = discoveryService;
+        this.flags = flags;
+        this.chatRedisStateService = chatRedisStateService;
+        this.rateLimitingService = rateLimitingService;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private User requireUserByClerkId(String clerkId) {
+    User requireUserByClerkId(String clerkId) {
         return userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    private void requireParticipant(UUID conversationId, UUID userId) {
+    void requireParticipant(UUID conversationId, UUID userId) {
         conversationRepository.findParticipant(conversationId, userId)
                 .orElseThrow(() -> new ForbiddenException("Not a participant in this conversation"));
     }
 
-    private ParticipantDto toParticipantDto(ConversationParticipant cp) {
+    ParticipantDto toParticipantDto(ConversationParticipant cp) {
         return new ParticipantDto(
                 cp.user.id,
                 cp.user.username,
@@ -80,7 +85,7 @@ public class ChatService {
         );
     }
 
-    private MessageResDto toMessageDto(Message m) {
+    MessageResDto toMessageDto(Message m) {
         return new MessageResDto(
                 m.id,
                 m.conversation.id,
@@ -96,7 +101,7 @@ public class ChatService {
         );
     }
 
-    private String resolveRequestStatus(Conversation conversation, UUID currentUserId) {
+    String resolveRequestStatus(Conversation conversation, UUID currentUserId) {
         if (conversation.isGroup || REQUEST_STATUS_ACCEPTED.equals(conversation.requestStatus)
                 || conversation.requestStatus == null || conversation.requestedByUser == null) {
             return REQUEST_STATUS_ACCEPTED;
@@ -107,7 +112,7 @@ public class ChatService {
                 : REQUEST_STATUS_PENDING_INCOMING;
     }
 
-    private ConversationResDto toConversationDto(Conversation c, UUID currentUserId) {
+    ConversationResDto toConversationDto(Conversation c, UUID currentUserId) {
         ConversationParticipant myParticipant = c.participants.stream()
                 .filter(cp -> cp.user.id.equals(currentUserId))
                 .findFirst().orElse(null);
@@ -165,7 +170,7 @@ public class ChatService {
         return toConversationDtoList(convs, user.id);
     }
 
-    private List<ConversationResDto> toConversationDtoList(List<Conversation> convs, UUID userId) {
+    List<ConversationResDto> toConversationDtoList(List<Conversation> convs, UUID userId) {
         Map<UUID, Message> latestMapTmp = Map.of();
         Map<UUID, Long> unreadMapTmp = Map.of();
         if (!readModelReadEnabled()) {
@@ -415,7 +420,7 @@ public class ChatService {
         return new java.util.ArrayList<>(userRepository.findClerkIdsByUserIds(partnerIds).values());
     }
 
-    private String truncatePreview(String content) {
+    String truncatePreview(String content) {
         if (content == null) {
             return null;
         }
@@ -423,7 +428,7 @@ public class ChatService {
         return normalized.length() <= 200 ? normalized : normalized.substring(0, 200);
     }
 
-    private void recomputeConversationReadModel(UUID conversationId) {
+    void recomputeConversationReadModel(UUID conversationId) {
         Conversation conversation = conversationRepository.findByIdOptional(conversationId).orElse(null);
         if (conversation == null) {
             return;
@@ -443,19 +448,19 @@ public class ChatService {
         }
     }
 
-    private boolean readModelReadEnabled() {
+    boolean readModelReadEnabled() {
         return flags != null && flags.readModelReadEnabled();
     }
 
-    private boolean readModelWriteEnabled() {
+    boolean readModelWriteEnabled() {
         return flags != null && flags.readModelWriteEnabled();
     }
 
-    private boolean redisUnreadEnabled() {
+    boolean redisUnreadEnabled() {
         return flags != null && flags.redisEnabled() && flags.redisUnreadCountersEnabled();
     }
 
-    private void refreshDiscoveryCandidates(UUID... userIds) {
+    void refreshDiscoveryCandidates(UUID... userIds) {
         if (discoveryService == null) {
             return;
         }

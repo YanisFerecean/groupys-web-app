@@ -23,14 +23,19 @@ import java.util.concurrent.CompletableFuture;
 @ApplicationScoped
 public class UserService {
 
-    @Inject
-    UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final UserFollowRepository userFollowRepository;
+    private final DiscoveryService discoveryService;
 
     @Inject
-    UserFollowRepository userFollowRepository;
-
-    @Inject
-    DiscoveryService discoveryService;
+    public UserService(
+            UserRepository userRepository,
+            UserFollowRepository userFollowRepository,
+            DiscoveryService discoveryService) {
+        this.userRepository = userRepository;
+        this.userFollowRepository = userFollowRepository;
+        this.discoveryService = discoveryService;
+    }
 
     public List<UserResDto> listAll() {
         return userRepository.listAll().stream()
@@ -76,7 +81,7 @@ public class UserService {
                 .toList();
     }
 
-    private UserResDto mapUser(User user) {
+    UserResDto mapUser(User user) {
         long followers = userFollowRepository.countFollowers(user.id);
         long following = userFollowRepository.countFollowing(user.id);
         return UserUtil.toDto(user, followers, following);
@@ -195,7 +200,7 @@ public class UserService {
         return mapUser(user);
     }
 
-    private void purgeUserData(UUID userId) {
+    void purgeUserData(UUID userId) {
         EntityManager em = userRepository.getEntityManager();
 
         // Recommendation/discovery data
@@ -320,7 +325,7 @@ public class UserService {
         nativeUpdate(em, "DELETE FROM user_tags WHERE user_id = :userId", userId);
     }
 
-    private void nativeUpdate(EntityManager em, String sql, UUID userId) {
+    void nativeUpdate(EntityManager em, String sql, UUID userId) {
         try {
             em.createNativeQuery(sql)
             .setParameter("userId", userId)
@@ -332,7 +337,7 @@ public class UserService {
         }
     }
 
-    private void nativeUpdate(EntityManager em, String sql) {
+    void nativeUpdate(EntityManager em, String sql) {
         try {
             em.createNativeQuery(sql).executeUpdate();
         } catch (Exception e) {

@@ -33,41 +33,46 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class PostService {
 
-    @Inject
-    PostRepository postRepository;
+    private final PostRepository postRepository;
+    private final CommunityRepository communityRepository;
+    private final UserRepository userRepository;
+    private final PostReactionRepository postReactionRepository;
+    private final CommentRepository commentRepository;
+    private final CommunityMemberRepository communityMemberRepository;
+    private final CommunityRecommendationCacheRepository communityRecommendationCacheRepository;
+    private final FriendshipRepository friendshipRepository;
+    private final CommentService commentService;
+    private final StorageService storageService;
+    private final Event<CommunityActivityEvent> communityActivityEvent;
+    private final PerformanceFeatureFlags flags;
 
     @Inject
-    CommunityRepository communityRepository;
-
-    @Inject
-    UserRepository userRepository;
-
-    @Inject
-    PostReactionRepository postReactionRepository;
-
-    @Inject
-    CommentRepository commentRepository;
-
-    @Inject
-    CommunityMemberRepository communityMemberRepository;
-
-    @Inject
-    CommunityRecommendationCacheRepository communityRecommendationCacheRepository;
-
-    @Inject
-    FriendshipRepository friendshipRepository;
-
-    @Inject
-    CommentService commentService;
-
-    @Inject
-    StorageService storageService;
-
-    @Inject
-    Event<CommunityActivityEvent> communityActivityEvent;
-
-    @Inject
-    PerformanceFeatureFlags flags;
+    public PostService(
+            PostRepository postRepository,
+            CommunityRepository communityRepository,
+            UserRepository userRepository,
+            PostReactionRepository postReactionRepository,
+            CommentRepository commentRepository,
+            CommunityMemberRepository communityMemberRepository,
+            CommunityRecommendationCacheRepository communityRecommendationCacheRepository,
+            FriendshipRepository friendshipRepository,
+            CommentService commentService,
+            StorageService storageService,
+            Event<CommunityActivityEvent> communityActivityEvent,
+            PerformanceFeatureFlags flags) {
+        this.postRepository = postRepository;
+        this.communityRepository = communityRepository;
+        this.userRepository = userRepository;
+        this.postReactionRepository = postReactionRepository;
+        this.commentRepository = commentRepository;
+        this.communityMemberRepository = communityMemberRepository;
+        this.communityRecommendationCacheRepository = communityRecommendationCacheRepository;
+        this.friendshipRepository = friendshipRepository;
+        this.commentService = commentService;
+        this.storageService = storageService;
+        this.communityActivityEvent = communityActivityEvent;
+        this.flags = flags;
+    }
 
     @CacheResult(cacheName = "feed")
     public List<PostResDto> getFeed(String clerkId, int page, int size) {
@@ -299,16 +304,16 @@ public class PostService {
      * Converts a list of posts to DTOs using 4 batch queries total regardless of list size,
      * eliminating the previous N×4 query pattern.
      */
-    private List<PostResDto> toDtoList(List<Post> posts, User currentUser) {
+    List<PostResDto> toDtoList(List<Post> posts, User currentUser) {
         return toDtoList(posts, currentUser, Map.of(), Map.of());
     }
 
-    private List<PostResDto> toDtoList(List<Post> posts, User currentUser, Map<UUID, String> reasonMap) {
+    List<PostResDto> toDtoList(List<Post> posts, User currentUser, Map<UUID, String> reasonMap) {
         return toDtoList(posts, currentUser, reasonMap, Map.of());
     }
 
-    private List<PostResDto> toDtoList(List<Post> posts, User currentUser, Map<UUID, String> reasonMap,
-                                        Map<UUID, User> friendLikerMap) {
+    List<PostResDto> toDtoList(List<Post> posts, User currentUser, Map<UUID, String> reasonMap,
+                                       Map<UUID, User> friendLikerMap) {
         if (posts.isEmpty()) return List.of();
 
         List<UUID> postIds = posts.stream().map(p -> p.id).toList();
@@ -362,11 +367,11 @@ public class PostService {
         }).toList();
     }
 
-    private PostResDto toDto(Post post, User currentUser) {
+    PostResDto toDto(Post post, User currentUser) {
         return toDtoList(List.of(post), currentUser).get(0);
     }
 
-    private void applyPostReactionDelta(Post post, String reactionType, int delta) {
+    void applyPostReactionDelta(Post post, String reactionType, int delta) {
         if (!readModelWriteEnabled()) {
             return;
         }
@@ -377,11 +382,11 @@ public class PostService {
         }
     }
 
-    private boolean readModelReadEnabled() {
+    boolean readModelReadEnabled() {
         return flags != null && flags.readModelReadEnabled();
     }
 
-    private boolean readModelWriteEnabled() {
+    boolean readModelWriteEnabled() {
         return flags != null && flags.readModelWriteEnabled();
     }
 }

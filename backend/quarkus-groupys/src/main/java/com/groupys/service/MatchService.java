@@ -27,40 +27,45 @@ import java.util.UUID;
 @ApplicationScoped
 public class MatchService {
 
-    @Inject
-    UserRepository userRepository;
-
-    @Inject
-    UserLikeRepository userLikeRepository;
-
-    @Inject
-    UserMatchRepository userMatchRepository;
-
-    @Inject
-    UserSimilarityCacheRepository userSimilarityCacheRepository;
-
-    @Inject
-    UserDiscoveryActionRepository userDiscoveryActionRepository;
-
-    @Inject
-    ConversationRepository conversationRepository;
-
-    @Inject
-    MessageRepository messageRepository;
-
-    @Inject
-    PresenceService presenceService;
-
-    @Inject
-    DiscoveryService discoveryService;
-
-    @Inject
-    PerformanceFeatureFlags flags;
-
-    @Inject
-    DiscoveryRedisCacheService redisCacheService;
+    private final UserRepository userRepository;
+    private final UserLikeRepository userLikeRepository;
+    private final UserMatchRepository userMatchRepository;
+    private final UserSimilarityCacheRepository userSimilarityCacheRepository;
+    private final UserDiscoveryActionRepository userDiscoveryActionRepository;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
+    private final PresenceService presenceService;
+    private final DiscoveryService discoveryService;
+    private final PerformanceFeatureFlags flags;
+    private final DiscoveryRedisCacheService redisCacheService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Inject
+    public MatchService(
+            UserRepository userRepository,
+            UserLikeRepository userLikeRepository,
+            UserMatchRepository userMatchRepository,
+            UserSimilarityCacheRepository userSimilarityCacheRepository,
+            UserDiscoveryActionRepository userDiscoveryActionRepository,
+            ConversationRepository conversationRepository,
+            MessageRepository messageRepository,
+            PresenceService presenceService,
+            DiscoveryService discoveryService,
+            PerformanceFeatureFlags flags,
+            DiscoveryRedisCacheService redisCacheService) {
+        this.userRepository = userRepository;
+        this.userLikeRepository = userLikeRepository;
+        this.userMatchRepository = userMatchRepository;
+        this.userSimilarityCacheRepository = userSimilarityCacheRepository;
+        this.userDiscoveryActionRepository = userDiscoveryActionRepository;
+        this.conversationRepository = conversationRepository;
+        this.messageRepository = messageRepository;
+        this.presenceService = presenceService;
+        this.discoveryService = discoveryService;
+        this.flags = flags;
+        this.redisCacheService = redisCacheService;
+    }
 
     // ── Like ──────────────────────────────────────────────────────────────────
 
@@ -106,7 +111,7 @@ public class MatchService {
         return new LikeResponseDto(false, null, null);
     }
 
-    private LikeResponseDto createMatch(User liker, User target) {
+    LikeResponseDto createMatch(User liker, User target) {
         // Canonical ordering: smaller UUID is userA
         User userA = liker.id.compareTo(target.id) <= 0 ? liker : target;
         User userB = liker.id.compareTo(target.id) <= 0 ? target : liker;
@@ -140,7 +145,7 @@ public class MatchService {
                 });
     }
 
-    private Conversation ensureMatchConversation(UserMatch match, User userA, User userB) {
+    Conversation ensureMatchConversation(UserMatch match, User userA, User userB) {
         Conversation conversation = match.conversation;
         if (conversation == null) {
             conversation = conversationRepository.findDirectConversation(userA.id, userB.id).orElse(null);
@@ -183,7 +188,7 @@ public class MatchService {
         return createdConversation;
     }
 
-    private void sendMatchEvent(User recipient, User otherUser, UUID matchId, UUID conversationId) {
+    void sendMatchEvent(User recipient, User otherUser, UUID matchId, UUID conversationId) {
         try {
             String json = objectMapper.writeValueAsString(
                     WebSocketMessage.matchNew(
@@ -300,12 +305,12 @@ public class MatchService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private User requireUserByClerkId(String clerkId) {
+    User requireUserByClerkId(String clerkId) {
         return userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    private MatchResDto toMatchResDto(UserMatch match, UUID currentUserId, Map<UUID, Long> unreadMap) {
+    MatchResDto toMatchResDto(UserMatch match, UUID currentUserId, Map<UUID, Long> unreadMap) {
         User other = match.userA.id.equals(currentUserId) ? match.userB : match.userA;
         UUID conversationId = match.conversation != null ? match.conversation.id : null;
         long unread = conversationId != null ? unreadMap.getOrDefault(conversationId, 0L) : 0L;
@@ -322,7 +327,7 @@ public class MatchService {
         );
     }
 
-    private List<MatchResDto> toMatchResDtos(List<UserMatch> matches, UUID currentUserId) {
+    List<MatchResDto> toMatchResDtos(List<UserMatch> matches, UUID currentUserId) {
         if (matches.isEmpty()) {
             return List.of();
         }
@@ -340,7 +345,7 @@ public class MatchService {
                 .toList();
     }
 
-    private SentLikeResDto toSentLikeResDto(UserLike like) {
+    SentLikeResDto toSentLikeResDto(UserLike like) {
         return new SentLikeResDto(
                 like.toUser.id,
                 like.toUser.username,
@@ -350,11 +355,11 @@ public class MatchService {
         );
     }
 
-    private boolean redisRecoWriteEnabled() {
+    boolean redisRecoWriteEnabled() {
         return flags != null && flags.redisEnabled() && flags.redisRecommendationWriteEnabled();
     }
 
-    private boolean legacyRecommendationPostgresWriteEnabled() {
+    boolean legacyRecommendationPostgresWriteEnabled() {
         return flags == null || flags.redisRecommendationLegacyPostgresWriteEnabled();
     }
 }
