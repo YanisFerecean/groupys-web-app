@@ -3,6 +3,7 @@ package com.groupys.resource;
 import com.groupys.dto.AlbumResDto;
 import com.groupys.service.AlbumService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Path("/albums")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
 public class AlbumResource {

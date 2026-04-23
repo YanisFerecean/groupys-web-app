@@ -5,6 +5,7 @@ import com.groupys.dto.TopAlbumResDto;
 import com.groupys.dto.TopTrackResDto;
 import com.groupys.service.ChartService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Path("/charts")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
 public class ChartResource {

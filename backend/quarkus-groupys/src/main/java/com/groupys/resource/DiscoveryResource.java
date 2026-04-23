@@ -8,6 +8,7 @@ import com.groupys.dto.SuggestedUserResDto;
 import com.groupys.service.DiscoveryService;
 import com.groupys.service.MatchService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -27,6 +28,7 @@ import java.util.UUID;
 
 @Path("/discovery")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")

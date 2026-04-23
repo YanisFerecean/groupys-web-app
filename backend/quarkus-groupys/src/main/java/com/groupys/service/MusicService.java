@@ -19,6 +19,7 @@ import com.groupys.dto.lastfm.LastFmUserTopArtistsResponse;
 import com.groupys.dto.lastfm.LastFmUserTopTracksResponse;
 import com.groupys.model.User;
 import com.groupys.repository.UserRepository;
+import com.groupys.util.EncryptionUtil;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -93,11 +94,14 @@ public class MusicService {
             new MusicAlbumItem("sim-album-3", "Actual Life", "Fred again..", "https://picsum.photos/seed/groupys-album-3/600/600")
     );
 
-    @Inject
-    UserRepository userRepository;
+@Inject
+UserRepository userRepository;
 
-    @Inject
-    AppleDeveloperTokenService developerTokenService;
+@Inject
+EncryptionUtil encryptionUtil;
+
+@Inject
+AppleDeveloperTokenService developerTokenService;
 
     @RestClient
     AppleMusicApiClient appleMusicApi;
@@ -132,7 +136,8 @@ public class MusicService {
 
         User user = userRepository.findByClerkId(clerkId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        user.appleMusicUserToken = token;
+        // Encrypt the token before storing
+        user.appleMusicUserToken = encryptionUtil.encrypt(token);
         user.appleMusicConnectedAt = Instant.now();
     }
 
@@ -438,7 +443,12 @@ public class MusicService {
         if (user.appleMusicUserToken == null || user.appleMusicUserToken.isBlank()) {
             throw new BadRequestException("Apple Music not connected");
         }
-        return user.appleMusicUserToken;
+        // Simulator mock tokens are stored unencrypted, don't decrypt them
+        if (useSimulatorMock(user.appleMusicUserToken)) {
+            return user.appleMusicUserToken;
+        }
+        // Decrypt the token before returning
+        return encryptionUtil.decrypt(user.appleMusicUserToken);
     }
 
     private void validateMusicUserToken(String musicUserToken) {

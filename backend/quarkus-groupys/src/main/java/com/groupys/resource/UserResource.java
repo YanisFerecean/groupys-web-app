@@ -16,6 +16,8 @@ import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -41,6 +43,7 @@ import java.util.UUID;
 
 @Path("/users")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
@@ -65,11 +68,13 @@ public class UserResource {
     JsonWebToken jwt;
 
     @GET
-    @Operation(summary = "List all users", description = "Returns a list of all registered users")
+    @RolesAllowed("ADMIN")
+    @Operation(summary = "List all users", description = "Returns a list of all registered users (admin only)")
     @APIResponses({
-        @APIResponse(responseCode = "200", description = "List of users retrieved successfully",
-                     content = @Content(schema = @Schema(implementation = UserResDto.class))),
-        @APIResponse(responseCode = "401", description = "Unauthorized - authentication required")
+            @APIResponse(responseCode = "200", description = "List of users retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = UserResDto.class))),
+            @APIResponse(responseCode = "401", description = "Unauthorized - authentication required"),
+            @APIResponse(responseCode = "403", description = "Forbidden - admin access required")
     })
     public List<UserResDto> list() {
         return userService.listAll();
@@ -188,16 +193,31 @@ public class UserResource {
 
     @DELETE
     @Path("/{id: [0-9a-fA-F\\-]{36}}")
-    @Operation(summary = "Delete user", description = "Deletes a user by their UUID (admin only)")
+    @Operation(summary = "Delete user", description = "Deletes a user by their UUID (admin or self only)")
     @APIResponses({
-        @APIResponse(responseCode = "204", description = "User deleted successfully"),
-        @APIResponse(responseCode = "404", description = "User not found"),
-        @APIResponse(responseCode = "401", description = "Unauthorized")
+            @APIResponse(responseCode = "204", description = "User deleted successfully"),
+            @APIResponse(responseCode = "404", description = "User not found"),
+            @APIResponse(responseCode = "401", description = "Unauthorized"),
+            @APIResponse(responseCode = "403", description = "Forbidden - can only delete own account or admin required")
     })
     public Response delete(
             @PathParam("id") UUID id) {
+        // Get current user from JWT
+        String currentUserClerkId = jwt.getSubject();
+        User currentUser = userRepository.findByClerkId(currentUserClerkId)
+                .orElseThrow(() -> new NotFoundException("Current user not found"));
+
+        // Check if user is deleting self or is admin
+        if (!currentUser.id.equals(id) && !isAdmin(currentUser)) {
+            throw new ForbiddenException("Not authorized to delete this user. Only admins or the account owner can delete.");
+        }
+
         userService.delete(id);
         return Response.noContent().build();
+    }
+
+    private boolean isAdmin(User user) {
+        return user.role != null && user.role == User.UserRole.ADMIN;
     }
 
     @DELETE

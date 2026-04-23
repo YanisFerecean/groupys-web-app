@@ -5,12 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "groupys",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "groupys.app",
+      "associatedDomains": [
+        "applinks:groupys.app"
+      ],
       "infoPlist": {
         "NSAppleMusicUsageDescription": "Groupys uses Apple Music to connect your account and sync your top music."
       },
@@ -26,7 +29,21 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "groupys.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "server",

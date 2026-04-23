@@ -4,6 +4,7 @@ import com.groupys.dto.FriendResDto;
 import com.groupys.dto.FriendStatusDto;
 import com.groupys.service.FriendshipService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @Path("/friends")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
 public class FriendshipResource {

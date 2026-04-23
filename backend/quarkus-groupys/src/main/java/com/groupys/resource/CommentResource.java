@@ -4,6 +4,7 @@ import com.groupys.dto.CommentCreateDto;
 import com.groupys.dto.CommentResDto;
 import com.groupys.service.CommentService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Path("/comments")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")

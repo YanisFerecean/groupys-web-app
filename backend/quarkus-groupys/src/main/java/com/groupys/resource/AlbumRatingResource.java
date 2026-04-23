@@ -5,6 +5,7 @@ import com.groupys.dto.AlbumRatingResDto;
 import com.groupys.service.AlbumRatingService;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 @Path("/album-ratings")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
 public class AlbumRatingResource {

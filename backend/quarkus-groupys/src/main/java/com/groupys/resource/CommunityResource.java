@@ -15,6 +15,8 @@ import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
@@ -33,6 +35,7 @@ import java.util.UUID;
 
 @Path("/communities")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")

@@ -10,6 +10,7 @@ import com.groupys.dto.MusicTrackResDto;
 import com.groupys.service.DiscoveryService;
 import com.groupys.service.MusicService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -30,6 +31,7 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Authenticated
+@RequestScoped
 @SecurityRequirement(name = "bearerAuth")
 public class MusicResource {
 

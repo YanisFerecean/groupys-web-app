@@ -103,7 +103,16 @@ public class User {
     @ColumnDefault("false")
     public boolean isVerified = false;
 
+    @Column(name = "role", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'USER'")
+    public UserRole role = UserRole.USER;
+
     public String website;
+
+    public enum UserRole {
+        USER, ADMIN
+    }
 
     @Column(name = "job_title")
     public String jobTitle;
