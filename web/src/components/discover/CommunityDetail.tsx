@@ -9,6 +9,7 @@ import AuthMedia from "@/components/ui/AuthMedia";
 import MediaLightbox, { LightboxItem } from "@/components/ui/MediaLightbox";
 import { resizeImage } from "@/lib/imageResize";
 import { toast } from "sonner";
+import EditCommunityModal from "@/components/discover/EditCommunityModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -22,6 +23,8 @@ interface CommunityRes {
   country: string;
   imageUrl: string;
   bannerUrl: string | null;
+  iconType: string | null;
+  iconUrl: string | null;
   tags: string[];
   artistId: number;
   memberCount: number;
@@ -452,9 +455,11 @@ export default function CommunityDetail({ id }: { id: string }) {
   const [posts, setPosts] = useState<PostRes[]>([]);
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [joining, setJoining] = useState(false);
   const [membersExpanded, setMembersExpanded] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "most_liked" | "most_disliked" | "most_commented">("newest");
 
@@ -518,6 +523,7 @@ export default function CommunityDetail({ id }: { id: string }) {
           setCommunity(communityData);
           setMembers(membersData);
           setJoined(membershipData.member);
+          setIsOwner(membershipData.owner ?? false);
           setPosts(postsData);
         }
       } catch (err) {
@@ -706,7 +712,7 @@ export default function CommunityDetail({ id }: { id: string }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-        {currentMember?.role === "owner" && (
+        {isOwner && (
           <>
             <input
               ref={bannerInputRef}
@@ -910,6 +916,17 @@ export default function CommunityDetail({ id }: { id: string }) {
                       </span>
                     </p>
                   )}
+
+                  {/* Owner actions */}
+                  {isOwner && (
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-on-surface bg-surface-container-high hover:bg-surface-container transition-colors mt-1"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings</span>
+                      Edit Community
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1005,6 +1022,14 @@ export default function CommunityDetail({ id }: { id: string }) {
           </aside>
         </div>
       </div>
+
+      {editModalOpen && (
+        <EditCommunityModal
+          community={community}
+          onClose={() => setEditModalOpen(false)}
+          onSaved={(updated) => { setCommunity(updated); setEditModalOpen(false); }}
+        />
+      )}
     </div>
   );
 }

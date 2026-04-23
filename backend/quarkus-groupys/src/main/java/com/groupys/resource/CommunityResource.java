@@ -176,6 +176,43 @@ public class CommunityResource {
         }
     }
 
+    @POST
+    @Path("/{id}/icon")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public CommunityResDto uploadIcon(@PathParam("id") UUID id, @RestForm("file") FileUpload file) {
+        if (file == null || file.size() == 0) {
+            throw new BadRequestException("No file provided");
+        }
+        try {
+            InputStream is = Files.newInputStream(file.uploadedFile());
+            String key = storageService.uploadToBucket("communityicons", file.fileName(), file.contentType(), is, file.size());
+            is.close();
+            return communityService.updateIcon(id, "/api/communities/icon/" + key);
+        } catch (Exception e) {
+            throw new InternalServerErrorException("Icon upload failed", e);
+        }
+    }
+
+    @GET
+    @Path("/icon/{key}")
+    @Produces(MediaType.WILDCARD)
+    @PermitAll
+    public Response getIcon(@PathParam("key") String key) {
+        try {
+            StatObjectResponse stat = minioClient.statObject(
+                    StatObjectArgs.builder().bucket("communityicons").object(key).build());
+            InputStream stream = minioClient.getObject(
+                    GetObjectArgs.builder().bucket("communityicons").object(key).build());
+            return Response.ok(stream)
+                    .header("Content-Type", stat.contentType())
+                    .header("Content-Length", stat.size())
+                    .header("Cache-Control", "public, max-age=31536000, immutable")
+                    .build();
+        } catch (Exception e) {
+            throw new NotFoundException("Icon not found");
+        }
+    }
+
     @GET
     @Path("/banner/{key}")
     @Produces(MediaType.WILDCARD)

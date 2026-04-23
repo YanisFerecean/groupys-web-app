@@ -59,6 +59,8 @@ public class CommunityService {
                         m.community.genre,
                         m.community.imageUrl,
                         m.community.bannerUrl,
+                        m.community.iconType,
+                        m.community.iconUrl,
                         m.community.tags != null ? m.community.tags : java.util.List.of(),
                         m.community.memberCount,
                         m.joinedAt,
@@ -253,6 +255,15 @@ public class CommunityService {
         Community community = communityRepository.findByIdOptional(id)
                 .orElseThrow(() -> new NotFoundException("Community not found"));
         community.bannerUrl = bannerUrl;
+        return CommunityUtil.toDto(community);
+    }
+
+    @Transactional
+    public CommunityResDto updateIcon(UUID id, String iconUrl) {
+        Community community = communityRepository.findByIdOptional(id)
+                .orElseThrow(() -> new NotFoundException("Community not found"));
+        community.iconUrl = iconUrl;
+        community.iconType = "IMAGE";
         return CommunityUtil.toDto(community);
     }
 

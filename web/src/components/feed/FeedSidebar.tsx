@@ -16,6 +16,14 @@ interface CommunityRes {
   country: string | null;
   memberCount: number;
   tags: string[];
+  iconUrl: string | null;
+  iconType: string | null;
+}
+
+function resolveIconUrl(iconUrl: string | null | undefined): string | null {
+  if (!iconUrl) return null;
+  if (iconUrl.startsWith("http")) return iconUrl;
+  return `${API_URL}${iconUrl.replace(/^\/api/, "")}`;
 }
 
 const COLORS = [
@@ -127,25 +135,36 @@ export default function FeedSidebar() {
           <p className="text-xs text-on-surface-variant/50">No trending communities this week.</p>
         ) : (
           <div className="space-y-6">
-            {trending.map((c, i) => (
-              <button
-                key={c.id}
-                onClick={() => router.push(`/discover/community/${c.id}`)}
-                className="flex items-center gap-4 group w-full text-left"
-              >
-                <span className="text-2xl font-black text-surface-container-highest group-hover:text-primary transition-colors shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold leading-none mb-1 truncate group-hover:text-primary transition-colors">
-                    {c.name}
-                  </p>
-                  <p className="text-xs text-on-surface-variant/60 truncate">
-                    {[c.genre, c.country].filter(Boolean).join(" · ") || `${c.memberCount} members`}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {trending.map((c, i) => {
+              const iconSrc = resolveIconUrl(c.iconUrl);
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => router.push(`/discover/community/${c.id}`)}
+                  className="flex items-center gap-3 group w-full text-left"
+                >
+                  <span className="text-2xl font-black text-surface-container-highest group-hover:text-primary transition-colors shrink-0 w-8 text-center">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className={`w-9 h-9 shrink-0 rounded-xl overflow-hidden bg-gradient-to-br ${colorFromId(c.id)} flex items-center justify-center`}>
+                    {iconSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={iconSrc} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-white" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>group</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-none mb-1 truncate group-hover:text-primary transition-colors">
+                      {c.name}
+                    </p>
+                    <p className="text-xs text-on-surface-variant/60 truncate">
+                      {[c.genre, c.country].filter(Boolean).join(" · ") || `${c.memberCount} members`}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -162,36 +181,34 @@ export default function FeedSidebar() {
         ) : (
           <>
             <div className="space-y-4">
-              {visible.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => router.push(`/discover/community/${c.id}`)}
-                  className="flex items-center gap-3 w-full text-left group"
-                >
-                  <div
-                    className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${colorFromId(c.id)} flex items-center justify-center`}
+              {visible.map((c) => {
+                const iconSrc = resolveIconUrl(c.iconUrl);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => router.push(`/discover/community/${c.id}`)}
+                    className="flex items-center gap-3 w-full text-left group"
                   >
-                    <span
-                      className="material-symbols-outlined text-white"
-                      style={{
-                        fontSize: 18,
-                        fontVariationSettings: "'FILL' 1",
-                      }}
-                    >
-                      group
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold leading-none mb-1 truncate group-hover:text-primary transition-colors">
-                      {c.name}
-                    </p>
-                    <p className="text-xs text-on-surface-variant/60">
-                      {c.memberCount} member{c.memberCount !== 1 ? "s" : ""}
-                      {c.country ? ` · ${c.country}` : ""}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                    <div className={`w-10 h-10 shrink-0 rounded-xl overflow-hidden bg-gradient-to-br ${colorFromId(c.id)} flex items-center justify-center`}>
+                      {iconSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={iconSrc} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="material-symbols-outlined text-white" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>group</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold leading-none mb-1 truncate group-hover:text-primary transition-colors">
+                        {c.name}
+                      </p>
+                      <p className="text-xs text-on-surface-variant/60">
+                        {c.memberCount} member{c.memberCount !== 1 ? "s" : ""}
+                        {c.country ? ` · ${c.country}` : ""}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {communities.length > 3 && (
               <button
