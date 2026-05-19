@@ -115,15 +115,15 @@ export default function ProfileHeader({
             )}
             <div className="flex items-center gap-6 md:gap-8 text-on-surface-variant font-medium flex-wrap justify-center md:justify-start mt-2">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: statColor }}>{albumsRatedCount ?? "—"}</span>
+                <span className="font-bold text-4xl" style={{ color: statColor }}>{albumsRatedCount ?? "—"}</span>
                 <span className="text-sm uppercase tracking-wide">Albums Rated</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: statColor }}>3</span>
+                <span className="font-bold text-4xl" style={{ color: statColor }}>3</span>
                 <span className="text-sm uppercase tracking-wide">Communities</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: statColor }}>12</span>
+                <span className="font-bold text-4xl" style={{ color: statColor }}>12</span>
                 <span className="text-sm uppercase tracking-wide">Check-ins</span>
               </div>
             </div>
