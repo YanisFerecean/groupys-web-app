@@ -86,6 +86,11 @@ public class MediaService {
 
     public ProcessedMedia processImage(InputStream input, String contentType) {
         try {
+            // GIFs must not be re-encoded — JPEG conversion strips animation frames
+            if ("image/gif".equalsIgnoreCase(contentType)) {
+                byte[] bytes = input.readAllBytes();
+                return new ProcessedMedia(new ByteArrayInputStream(bytes), bytes.length, "image/gif");
+            }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             Thumbnails.of(input)
                     .size(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
