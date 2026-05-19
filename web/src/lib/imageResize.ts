@@ -13,7 +13,8 @@ export async function resizeImage(
   maxHeight: number,
   cover = false,
 ): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
+  // GIFs must not be drawn through a canvas — that strips animation to a single frame
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
 
   return new Promise((resolve, reject) => {
     const img = new Image();
