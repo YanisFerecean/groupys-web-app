@@ -35,7 +35,7 @@ export default function LastRatedAlbumWidget({ username, containerColor, size = 
   return (
     <WidgetCard
       title={size === "small" ? "Last Rated Album" : "Last Rated Albums"}
-      className="h-[260px] overflow-hidden"
+      className="h-[260px] flex flex-col overflow-hidden"
       style={containerColor ? { backgroundColor: containerColor } : undefined}
       textColor={textColor}
     >
@@ -137,12 +137,17 @@ export default function LastRatedAlbumWidget({ username, containerColor, size = 
           </div>
         )
       ) : (
-        <p
-          className="text-sm"
-          style={textColor ? { color: textColor, opacity: 0.6 } : { color: "var(--color-on-surface-variant)" }}
-        >
-          No albums rated yet.
-        </p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 28, color: textColor ?? "var(--color-on-surface-variant)", opacity: 0.35, fontVariationSettings: "'FILL' 1" }}
+          >
+            album
+          </span>
+          <p className="text-xs" style={{ color: textColor ?? "var(--color-on-surface-variant)", opacity: 0.5 }}>
+            No albums rated yet
+          </p>
+        </div>
       )}
     </WidgetCard>
   );
