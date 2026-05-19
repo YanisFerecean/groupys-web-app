@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import type { ProfileCustomization } from "@/types/profile";
 import { countryFlag } from "@/lib/countries";
+import { getContrastColor } from "@/lib/utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -39,6 +40,11 @@ export default function ProfileHeader({
   const [avatarError, setAvatarError] = useState(false);
   const displayName = profile.displayName || clerkName;
   const bannerStyle = bannerBackground(profile.bannerUrl);
+  // Accent used as text on the page surface — fall back to primary when the accent is too light to read
+  const accentIsLight = !!profile.accentColor && getContrastColor(profile.accentColor) === "#0d0d0d";
+  const statColor = accentIsLight
+    ? "var(--color-primary)"
+    : "var(--profile-accent, var(--color-primary))";
 
   return (
     <section className="relative">
@@ -99,7 +105,7 @@ export default function ProfileHeader({
                     className="text-xs font-semibold px-3 py-1 rounded-full"
                     style={{
                       backgroundColor: "color-mix(in srgb, var(--profile-accent, var(--color-primary)) 15%, transparent)",
-                      color: "var(--profile-accent, var(--color-primary))",
+                      color: statColor,
                     }}
                   >
                     {tag}
@@ -109,15 +115,15 @@ export default function ProfileHeader({
             )}
             <div className="flex items-center gap-6 md:gap-8 text-on-surface-variant font-medium flex-wrap justify-center md:justify-start mt-2">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: "var(--profile-accent, var(--color-primary))" }}>{albumsRatedCount ?? "—"}</span>
+                <span className="font-bold text-lg" style={{ color: statColor }}>{albumsRatedCount ?? "—"}</span>
                 <span className="text-sm uppercase tracking-wide">Albums Rated</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: "var(--profile-accent, var(--color-primary))" }}>3</span>
+                <span className="font-bold text-lg" style={{ color: statColor }}>3</span>
                 <span className="text-sm uppercase tracking-wide">Communities</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: "var(--profile-accent, var(--color-primary))" }}>12</span>
+                <span className="font-bold text-lg" style={{ color: statColor }}>12</span>
                 <span className="text-sm uppercase tracking-wide">Check-ins</span>
               </div>
             </div>
@@ -130,7 +136,7 @@ export default function ProfileHeader({
               className="px-5 py-2.5 text-sm font-bold rounded-full transition-colors"
               style={{
                 backgroundColor: "var(--profile-accent, var(--color-primary))",
-                color: "#fff",
+                color: profile.accentColor ? getContrastColor(profile.accentColor) : "#fff",
               }}
             >
               Edit Profile
