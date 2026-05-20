@@ -100,18 +100,22 @@ const HERO_COLORS = [
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function MemberRow({ member }: { member: MemberRes }) {
+  const [avatarError, setAvatarError] = useState(false);
   return (
     <div className="flex items-center gap-3 py-3 px-2">
-      {member.profileImage ? (
-        <Image
-          src={member.profileImage}
-          alt={member.displayName || member.username}
-          width={40}
-          height={40}
-          className="rounded-full object-cover aspect-square"
-        />
+      {member.profileImage && !avatarError ? (
+        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+          <Image
+            src={member.profileImage}
+            alt={member.displayName || member.username}
+            width={40}
+            height={40}
+            className="object-cover w-full h-full"
+            onError={() => setAvatarError(true)}
+          />
+        </div>
       ) : (
-        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
           <span className="material-symbols-outlined text-on-surface-variant/40 text-lg">
             person
           </span>
