@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
+import { useAuth } from "@clerk/nextjs";
 import type { ProfileCustomization } from "@/types/profile";
 import { getContrastColor } from "@/lib/utils";
 import WidgetCard from "./WidgetCard";
@@ -13,11 +14,15 @@ interface TopSongsWidgetProps {
   className?: string;
 }
 
-async function resolvePreviewUrl(song: { title: string; artist: string; preview?: string }): Promise<string | null> {
+async function resolvePreviewUrl(
+  song: { title: string; artist: string; preview?: string },
+  token?: string | null,
+): Promise<string | null> {
   if (song.preview?.startsWith("http")) return song.preview;
   try {
     const q = encodeURIComponent(`${song.title} ${song.artist}`.trim());
-    const res = await fetch(`/api/music-search?q=${q}&type=track`);
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`/api/music-search?q=${q}&type=track`, { headers });
     if (!res.ok) return null;
     const data = await res.json();
     const results: { title: string; artist: string; preview?: string | null }[] = data.results ?? [];
@@ -34,6 +39,7 @@ async function resolvePreviewUrl(song: { title: string; artist: string; preview?
 }
 
 export default function TopSongsWidget({ songs, containerColor, size = "normal", className }: TopSongsWidgetProps) {
+  const { getToken } = useAuth();
   const textColor = containerColor ? getContrastColor(containerColor) : undefined;
   const coverSize = 48;
   const visibleSongs = useMemo(() => songs?.slice(0, size === "small" ? 1 : 3) ?? [], [songs, size]);
@@ -46,9 +52,10 @@ export default function TopSongsWidget({ songs, containerColor, size = "normal",
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const token = await getToken();
       const entries = await Promise.all(
         visibleSongs.map(async (song, i) => {
-          const url = await resolvePreviewUrl(song);
+          const url = await resolvePreviewUrl(song, token);
           return [i, url] as const;
         })
       );
@@ -62,7 +69,7 @@ export default function TopSongsWidget({ songs, containerColor, size = "normal",
     return () => {
       cancelled = true;
     };
-  }, [visibleSongs]);
+  }, [visibleSongs, getToken]);
 
   // Cleanup audio on unmount
   useEffect(() => {

@@ -25,6 +25,7 @@ export default function CurrentlyListeningWidget({
 }: CurrentlyListeningWidgetProps) {
   const { getToken } = useAuth();
   const [liveTrack, setLiveTrack] = useState(savedTrack);
+  const [resolvedPreview, setResolvedPreview] = useState<string | undefined>(savedTrack?.preview);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -47,6 +48,40 @@ export default function CurrentlyListeningWidget({
     return () => clearInterval(id);
   }, [musicConnected, getToken, savedTrack]);
 
+  // Resolve preview URL for the track when not stored
+  useEffect(() => {
+    const t = musicConnected ? liveTrack : savedTrack;
+    if (t?.preview?.startsWith("http")) {
+      setResolvedPreview(t.preview);
+      return;
+    }
+    if (!t?.title) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await getToken();
+        const q = encodeURIComponent(`${t.title} ${t.artist ?? ""}`.trim());
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`/api/music-search?q=${q}&type=track`, { headers });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const results: { title: string; artist: string; preview?: string | null }[] = data.results ?? [];
+        const match =
+          results.find(
+            (r) =>
+              r.title.toLowerCase() === t.title!.toLowerCase() &&
+              r.artist.toLowerCase() === (t.artist ?? "").toLowerCase()
+          ) ?? results[0];
+        if (!cancelled && match?.preview?.startsWith("http")) {
+          setResolvedPreview(match.preview);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [liveTrack, savedTrack, musicConnected, getToken]);
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
@@ -61,7 +96,7 @@ export default function CurrentlyListeningWidget({
   const textColor = containerColor ? getContrastColor(containerColor) : undefined;
 
   const handleTrackClick = () => {
-    if (!track?.preview) return;
+    if (!resolvedPreview) return;
 
     if (isPlaying) {
       audioRef.current?.pause();
@@ -70,7 +105,7 @@ export default function CurrentlyListeningWidget({
       return;
     }
 
-    const audio = new Audio(track.preview);
+    const audio = new Audio(resolvedPreview);
     audioRef.current = audio;
 
     audio.addEventListener("ended", () => {
@@ -101,14 +136,14 @@ export default function CurrentlyListeningWidget({
       {track?.title ? (
         size === "small" ? (
           <div
-            className={`flex flex-col gap-3 ${track.preview ? "cursor-pointer group" : ""}`}
+            className={`flex flex-col gap-3 ${resolvedPreview ? "cursor-pointer group" : ""}`}
             onClick={handleTrackClick}
           >
             {track.coverUrl && (
               <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-md">
                 <Image alt={track.title} fill className="object-cover" src={track.coverUrl} />
                 {/* Play/Pause overlay */}
-                {track.preview && (
+                {resolvedPreview && (
                   <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                     <span className="material-symbols-outlined text-white text-4xl">
                       {isPlaying ? "pause" : "play_arrow"}
@@ -128,7 +163,7 @@ export default function CurrentlyListeningWidget({
           <div className="flex flex-col gap-3">
             {track.coverUrl && (
               <div
-                className={`relative w-full rounded-xl overflow-hidden shadow-lg ${track.preview ? "cursor-pointer group" : ""}`}
+                className={`relative w-full rounded-xl overflow-hidden shadow-lg ${resolvedPreview ? "cursor-pointer group" : ""}`}
                 style={{ height: 140 }}
                 onClick={handleTrackClick}
               >
@@ -139,7 +174,7 @@ export default function CurrentlyListeningWidget({
                   src={track.coverUrl}
                 />
                 {/* Play/Pause overlay */}
-                {track.preview && (
+                {resolvedPreview && (
                   <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                     <span className="material-symbols-outlined text-white text-5xl">
                       {isPlaying ? "pause" : "play_arrow"}
