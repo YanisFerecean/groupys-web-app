@@ -67,13 +67,15 @@ function UserOnlineCard({
         className="flex flex-col items-center gap-2 w-full hover:opacity-80 transition-opacity"
       >
         {user.profileImage ? (
-          <Image
-            src={user.profileImage}
-            alt={name}
-            width={64}
-            height={64}
-            className="rounded-full object-cover"
-          />
+          <div className="w-16 h-16 rounded-full overflow-hidden shrink-0">
+            <Image
+              src={user.profileImage}
+              alt={name}
+              width={64}
+              height={64}
+              className="object-cover w-full h-full"
+            />
+          </div>
         ) : (
           <div className="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center">
             <span
