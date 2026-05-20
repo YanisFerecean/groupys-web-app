@@ -119,7 +119,7 @@ public class User {
 
     public String location;
 
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_tags", joinColumns = @JoinColumn(name = "user_id"),
             indexes = @Index(name = "idx_user_tags_user_id", columnList = "user_id"))
     @Column(name = "tag")
