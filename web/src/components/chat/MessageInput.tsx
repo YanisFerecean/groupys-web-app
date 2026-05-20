@@ -159,7 +159,7 @@ export function MessageInput({ conversationId, onSend, disabled, rateLimitError 
         <button
           onClick={handleSend}
           disabled={!content.trim() || disabled || remaining < 0}
-          className="h-11 w-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+          className="h-11 w-11 rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
         >
           <SendHorizonal className="w-5 h-5 ml-0.5" />
         </button>
