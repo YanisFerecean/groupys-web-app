@@ -334,16 +334,13 @@ export default function PublicProfileView({
                 <button
                   onClick={handleFriend}
                   disabled={friendLoading}
-                  className="px-5 py-2.5 text-sm font-bold rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={
+                  className={`px-5 py-2.5 text-sm font-bold rounded-full transition-all cursor-pointer active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${
                     friendStatus === "ACCEPTED"
-                      ? { backgroundColor: "color-mix(in srgb, var(--profile-accent, var(--color-primary)) 15%, transparent)", color: "var(--profile-accent, var(--color-primary))" }
+                      ? "bg-primary/15 text-primary hover:bg-primary/25"
                       : friendStatus === "PENDING_SENT"
-                      ? { backgroundColor: "transparent", border: "2px solid var(--profile-accent, var(--color-primary))", color: "var(--profile-accent, var(--color-primary))" }
-                      : friendStatus === "PENDING_RECEIVED"
-                      ? { backgroundColor: "var(--profile-accent, var(--color-primary))", color: "#fff" }
-                      : { backgroundColor: "var(--profile-accent, var(--color-primary))", color: "#fff" }
-                  }
+                      ? "bg-primary/15 text-primary hover:bg-primary/25"
+                      : "bg-primary text-on-primary hover:opacity-90"
+                  }`}
                 >
                   <span className="flex items-center gap-2">
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
@@ -365,7 +362,7 @@ export default function PublicProfileView({
                 <button
                   onClick={handleMessage}
                   disabled={messagingLoading}
-                  className="px-5 py-2.5 text-sm font-bold rounded-full bg-surface-container-high hover:bg-surface-container-highest transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 text-sm font-bold rounded-full bg-primary text-on-primary hover:opacity-90 transition-all cursor-pointer active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="flex items-center gap-2">
                     <span
