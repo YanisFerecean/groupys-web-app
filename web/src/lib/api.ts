@@ -381,12 +381,20 @@ export async function searchUsers(
   return res.json();
 }
 
+const WIDGET_FIELDS: (keyof ProfileCustomization)[] = [
+  "topAlbums", "topSongs", "topArtists", "currentlyListening",
+  "showLastRatedAlbum", "showHotTake", "widgetOrder", "hiddenWidgets",
+  "widgetSizes", "musicSynced", "albumsContainerColor", "songsContainerColor",
+  "artistsContainerColor", "currentlyListeningContainerColor",
+  "lastRatedAlbumContainerColor", "hotTakeContainerColor",
+];
+
 export async function updateBackendUser(
   userId: string,
   data: Partial<ProfileCustomization>,
   token: string | null,
 ): Promise<BackendUser> {
-  const widgets = profileToWidgets(data);
+  const hasWidgetData = WIDGET_FIELDS.some(f => f in data);
   const body = {
     displayName: data.displayName ?? null,
     bio: data.bio ?? null,
@@ -395,7 +403,7 @@ export async function updateBackendUser(
     accentColor: data.accentColor ?? null,
     nameColor: data.nameColor ?? null,
     profileImage: data.profileImage ?? null,
-    widgets: JSON.stringify(widgets),
+    widgets: hasWidgetData ? JSON.stringify(profileToWidgets(data)) : null,
     tags: data.tags ?? null,
   };
 

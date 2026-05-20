@@ -7,6 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import SectionHeader from "@/components/discover/SectionHeader";
 import { fetchSuggestedUsers } from "@/lib/match-api";
 import { followUser } from "@/lib/discovery-api";
+import { fetchFriendStatus, acceptFriendRequest } from "@/lib/friends-api";
 import type { SuggestedUser } from "@/types/match";
 
 // ── Reason code → human-readable label + icon ──────────────────────────────
@@ -50,6 +51,16 @@ function UserOnlineCard({
     if (followed || loading) return;
     setLoading(true);
     try {
+      if (token) {
+        try {
+          const status = await fetchFriendStatus(user.userId, token);
+          if (status.status === "PENDING_RECEIVED" && status.friendshipId) {
+            await acceptFriendRequest(status.friendshipId, token);
+          }
+        } catch {
+          // ignore — proceed with follow regardless
+        }
+      }
       await followUser(user.userId, token);
       setFollowed(true);
     } catch {
