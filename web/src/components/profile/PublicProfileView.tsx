@@ -20,6 +20,7 @@ import {
   fetchUserAlbumRatings,
 } from "@/lib/api";
 import { countryFlag } from "@/lib/countries";
+import { getContrastColor } from "@/lib/utils";
 import ProfileWidgetGrid from "./ProfileWidgetGrid";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
@@ -180,7 +181,7 @@ export default function PublicProfileView({
         <span className="material-symbols-outlined text-primary text-4xl">
           person_off
         </span>
-        <p className="text-on-surface font-bold text-lg">User not found</p>
+        <p className="text-on-surface font-bold text-4xl">User not found</p>
         <button
           onClick={() => router.back()}
           className="text-primary font-semibold text-sm"
@@ -199,6 +200,11 @@ export default function PublicProfileView({
   const accentVar = profile.accentColor
     ? ({ "--profile-accent": profile.accentColor } as React.CSSProperties)
     : undefined;
+  const accentIsLight = !!profile.accentColor && getContrastColor(profile.accentColor) === "#0d0d0d";
+  const statColor = accentIsLight ? "var(--color-primary)" : "var(--profile-accent, var(--color-primary))";
+  const tagBg = accentIsLight
+    ? "color-mix(in srgb, var(--color-primary) 15%, transparent)"
+    : "color-mix(in srgb, var(--profile-accent, var(--color-primary)) 15%, transparent)";
 
   return (
     <div style={accentVar}>
@@ -262,8 +268,8 @@ export default function PublicProfileView({
                       key={tag}
                       className="text-xs font-semibold px-3 py-1 rounded-full"
                       style={{
-                        backgroundColor: "color-mix(in srgb, var(--profile-accent, var(--color-primary)) 15%, transparent)",
-                        color: "var(--profile-accent, var(--color-primary))",
+                        backgroundColor: tagBg,
+                        color: statColor,
                       }}
                     >
                       {tag}
@@ -274,10 +280,9 @@ export default function PublicProfileView({
               <div className="flex items-center gap-6 md:gap-8 text-on-surface-variant font-medium flex-wrap justify-center md:justify-start mt-2">
                 <div className="flex items-center gap-2">
                   <span
-                    className="font-bold text-lg"
+                    className="font-bold text-4xl"
                     style={{
-                      color:
-                        "var(--profile-accent, var(--color-primary))",
+                      color: statColor,
                     }}
                   >
                     {albumsRatedCount ?? "—"}
@@ -288,8 +293,8 @@ export default function PublicProfileView({
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className="font-bold text-lg"
-                    style={{ color: "var(--profile-accent, var(--color-primary))" }}
+                    className="font-bold text-4xl"
+                    style={{ color: statColor }}
                   >
                     {postsCount ?? "—"}
                   </span>
@@ -299,10 +304,9 @@ export default function PublicProfileView({
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className="font-bold text-lg"
+                    className="font-bold text-4xl"
                     style={{
-                      color:
-                        "var(--profile-accent, var(--color-primary))",
+                      color: statColor,
                     }}
                   >
                     3
@@ -313,10 +317,9 @@ export default function PublicProfileView({
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className="font-bold text-lg"
+                    className="font-bold text-4xl"
                     style={{
-                      color:
-                        "var(--profile-accent, var(--color-primary))",
+                      color: statColor,
                     }}
                   >
                     12
