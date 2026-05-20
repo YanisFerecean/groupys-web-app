@@ -12,6 +12,15 @@ import ProfileEditDrawer from "./ProfileEditDrawer";
 import MarkdownContent from "@/components/ui/MarkdownContent";
 import AuthMedia from "@/components/ui/AuthMedia";
 import MediaLightbox, { LightboxItem } from "@/components/ui/MediaLightbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -47,6 +56,7 @@ interface CommunityRes {
   tags: string[];
   joinedAt: string;
   postCount: number;
+  role: string;
 }
 
 function timeAgo(iso: string) {
@@ -229,11 +239,28 @@ function cardColorFromId(id: string) {
   return CARD_COLORS[hash % CARD_COLORS.length];
 }
 
-function CommunityList({ communities, loading, onClickCommunity }: {
+function CommunityList({ communities, loading, onClickCommunity, onLeaveCommunity }: {
   communities: CommunityRes[];
   loading: boolean;
   onClickCommunity: (id: string) => void;
+  onLeaveCommunity: (id: string) => Promise<void>;
 }) {
+  const [leavingId, setLeavingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  const confirmCommunity = communities.find((c) => c.id === confirmId);
+
+  async function handleLeave() {
+    if (!confirmId) return;
+    setLeavingId(confirmId);
+    setConfirmId(null);
+    try {
+      await onLeaveCommunity(confirmId);
+    } finally {
+      setLeavingId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-4">
@@ -252,69 +279,112 @@ function CommunityList({ communities, loading, onClickCommunity }: {
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {communities.map((c) => {
-        const imgSrc = (c.bannerUrl || c.imageUrl)
-          ? `${API_URL}${(c.bannerUrl ?? c.imageUrl)!.replace(/^\/api/, "")}`
-          : null;
-        return (
-          <div
-            key={c.id}
-            onClick={() => onClickCommunity(c.id)}
-            className="relative aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:scale-[1.02] transition-transform"
-          >
-            {imgSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imgSrc} alt={c.name} className="absolute inset-0 w-full h-full object-cover" />
-            ) : (
-              <div className={`absolute inset-0 bg-gradient-to-br ${cardColorFromId(c.id)}`}>
-                <span
-                  className="material-symbols-outlined absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/10 select-none"
-                  style={{ fontSize: 80, fontVariationSettings: "'FILL' 1" }}
-                >
-                  group
-                </span>
-              </div>
-            )}
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        {communities.map((c) => {
+          const imgSrc = (c.bannerUrl || c.imageUrl)
+            ? `${API_URL}${(c.bannerUrl ?? c.imageUrl)!.replace(/^\/api/, "")}`
+            : null;
+          const isLeaving = leavingId === c.id;
+          const canLeave = c.role !== "owner";
+          return (
             <div
-              className="absolute inset-0"
-              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.88) 100%)" }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-              <div className="flex flex-wrap gap-1">
-                {c.tags?.slice(0, 2).map((tag) => (
-                  <span key={tag} className="bg-white/25 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase">
-                    {tag}
+              key={c.id}
+              onClick={() => !isLeaving && onClickCommunity(c.id)}
+              className="group relative aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:scale-[1.02] transition-transform"
+            >
+              {imgSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imgSrc} alt={c.name} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className={`absolute inset-0 bg-gradient-to-br ${cardColorFromId(c.id)}`}>
+                  <span
+                    className="material-symbols-outlined absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/10 select-none"
+                    style={{ fontSize: 80, fontVariationSettings: "'FILL' 1" }}
+                  >
+                    group
                   </span>
-                ))}
-                {c.genre && !c.tags?.length && (
-                  <span className="bg-white/25 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase">
-                    {c.genre}
-                  </span>
-                )}
-              </div>
-              <h3 className="text-white font-extrabold text-base leading-tight">{c.name}</h3>
-              <div className="flex gap-4">
-                <div className="flex flex-col">
-                  <span className="text-white font-bold text-xs leading-tight">{c.memberCount}</span>
-                  <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">Members</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-white font-bold text-xs leading-tight">{c.postCount}</span>
-                  <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">My Posts</span>
+              )}
+              <div
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.88) 100%)" }}
+              />
+              {canLeave && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmId(c.id); }}
+                  disabled={isLeaving}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-error/80 text-white rounded-full p-1.5 disabled:opacity-50"
+                  title="Leave community"
+                >
+                  {isLeaving ? (
+                    <span className="material-symbols-outlined text-sm" style={{ fontSize: 16 }}>hourglass_empty</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm" style={{ fontSize: 16 }}>logout</span>
+                  )}
+                </button>
+              )}
+              <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
+                <div className="flex flex-wrap gap-1">
+                  {c.tags?.slice(0, 2).map((tag) => (
+                    <span key={tag} className="bg-white/25 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase">
+                      {tag}
+                    </span>
+                  ))}
+                  {c.genre && !c.tags?.length && (
+                    <span className="bg-white/25 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase">
+                      {c.genre}
+                    </span>
+                  )}
                 </div>
-                {c.joinedAt && (
+                <h3 className="text-white font-extrabold text-base leading-tight">{c.name}</h3>
+                <div className="flex gap-4">
                   <div className="flex flex-col">
-                    <span className="text-white font-bold text-xs leading-tight">{memberSince(c.joinedAt)}</span>
-                    <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">Joined</span>
+                    <span className="text-white font-bold text-xs leading-tight">{c.memberCount}</span>
+                    <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">Members</span>
                   </div>
-                )}
+                  <div className="flex flex-col">
+                    <span className="text-white font-bold text-xs leading-tight">{c.postCount}</span>
+                    <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">My Posts</span>
+                  </div>
+                  {c.joinedAt && (
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold text-xs leading-tight">{memberSince(c.joinedAt)}</span>
+                      <span className="text-white/60 text-[9px] uppercase tracking-widest font-semibold">Joined</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+
+      <Dialog open={!!confirmId} onOpenChange={(open) => { if (!open) setConfirmId(null); }}>
+        <DialogContent className="max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Leave community?</DialogTitle>
+            <DialogDescription>
+              You can rejoin {confirmCommunity?.name} at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setConfirmId(null)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleLeave}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-error text-white hover:opacity-90 transition-opacity"
+            >
+              Leave
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -415,6 +485,22 @@ export default function ProfileView() {
     }
   }, [communities.length]);
 
+  const handleLeaveCommunity = useCallback(async (communityId: string) => {
+    try {
+      const token = await getTokenRef.current();
+      const res = await fetch(`${API_URL}/communities/${communityId}/leave`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to leave");
+      setCommunities((prev) => prev.filter((c) => c.id !== communityId));
+      toast.success("Left community");
+    } catch {
+      toast.error("Failed to leave community");
+      throw new Error("leave failed");
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === "posts") fetchPosts();
     if (activeTab === "likes") fetchLikes();
@@ -501,6 +587,7 @@ export default function ProfileView() {
               communities={communities}
               loading={communitiesLoading}
               onClickCommunity={(id) => router.push(`/discover/community/${id}`)}
+              onLeaveCommunity={handleLeaveCommunity}
             />
           )}
         </div>

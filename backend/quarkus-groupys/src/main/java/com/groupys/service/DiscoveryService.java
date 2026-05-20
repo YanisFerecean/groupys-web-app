@@ -253,6 +253,26 @@ public class DiscoveryService {
     }
 
     /**
+     * Fire-and-forget variant of refreshAfterCommunityChange for use inside join/leave/create.
+     * Submits the refresh to a background virtual thread so no exception from the refresh
+     * can ever roll back or affect the caller's membership transaction.
+     */
+    public void refreshAfterCommunityChangeSafe(UUID userId, UUID communityId) {
+        if (shuttingDown) return;
+        try {
+            virtualThreadExecutor.submit(() -> {
+                try {
+                    self.refreshAfterCommunityChange(userId, communityId);
+                } catch (Exception e) {
+                    Log.warnf(e, "Discovery refresh failed after community change (community=%s, user=%s) — join/leave still committed", communityId, userId);
+                }
+            });
+        } catch (Exception e) {
+            Log.warnf(e, "Could not schedule discovery refresh (community=%s, user=%s)", communityId, userId);
+        }
+    }
+
+    /**
      * Refreshes discovery data after community activity (async).
      * Delegates to TasteProfileService.
      */
