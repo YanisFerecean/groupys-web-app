@@ -125,9 +125,19 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
               >
                 {hotTake.question}
               </p>
-              <p className="text-xs italic" style={{ color: textColor ?? "var(--color-on-surface-variant)", opacity: 0.45 }}>
-                No answer yet
-              </p>
+              {isOwnProfile ? (
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="mt-auto flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                  Answer now
+                </button>
+              ) : (
+                <p className="text-xs italic" style={{ color: textColor ?? "var(--color-on-surface-variant)", opacity: 0.45 }}>
+                  No answer yet
+                </p>
+              )}
             </div>
           ) : size === "small" ? (
             /* ── Small: first pick image + answer text ── */
@@ -212,6 +222,7 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
             const token = await getTokenRef.current();
             const mine = await fetchMyHotTakeAnswer(token);
             setMyAnswer(mine);
+            if (isOwnProfile) setAnswer(mine);
           }}
         />
       )}
