@@ -11,6 +11,7 @@ import {
   type HotTakeRes,
 } from "@/lib/hot-take-api";
 import { getContrastColor } from "@/lib/utils";
+import { audioPlayer } from "@/lib/audioPlayer";
 import WidgetCard from "./WidgetCard";
 import HotTakeAnswerModal from "@/components/feed/HotTakeAnswerModal";
 
@@ -31,6 +32,9 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
   const [myAnswer, setMyAnswer] = useState<HotTakeAnswerRes | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [resolvedPreviews, setResolvedPreviews] = useState<Record<number, string>>({});
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentUsername = user?.username;
 
@@ -61,6 +65,79 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
     })();
     return () => { cancelled = true; };
   }, [username]);
+
+  // Resolve preview URLs for SONG-type picks
+  useEffect(() => {
+    if (!answer) return;
+    const songPicks = answer.answers
+      .map((ans, i) => ({ ans, i, type: answer.musicTypes[i] }))
+      .filter(({ type }) => type === "SONG" || type === "track");
+    if (songPicks.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      const token = await getTokenRef.current();
+      const entries = await Promise.all(
+        songPicks.map(async ({ ans, i }) => {
+          const parts = ans.split(" — ");
+          const title = parts[0]?.trim() ?? ans;
+          const artist = parts[1]?.trim() ?? "";
+          try {
+            const q = encodeURIComponent(`${title} ${artist}`.trim());
+            const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`/api/music-search?q=${q}&type=track`, { headers });
+            if (!res.ok) return [i, null] as const;
+            const data = await res.json();
+            const results: { title: string; artist: string; preview?: string | null }[] = data.results ?? [];
+            const match =
+              results.find(r =>
+                r.title.toLowerCase() === title.toLowerCase() &&
+                r.artist.toLowerCase() === artist.toLowerCase()
+              ) ?? results[0];
+            return [i, match?.preview?.startsWith("http") ? match.preview : null] as const;
+          } catch {
+            return [i, null] as const;
+          }
+        })
+      );
+      if (cancelled) return;
+      const map: Record<number, string> = {};
+      for (const [i, url] of entries) {
+        if (url) map[i] = url;
+      }
+      setResolvedPreviews(map);
+    })();
+    return () => { cancelled = true; };
+  }, [answer]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioPlayer.stop();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handlePickClick = (index: number) => {
+    const url = resolvedPreviews[index];
+    if (!url) return;
+    if (playingIndex === index) {
+      audioPlayer.stop();
+      audioRef.current = null;
+      setPlayingIndex(null);
+      return;
+    }
+    const audio = audioPlayer.play(url, () => {
+      setPlayingIndex(null);
+      audioRef.current = null;
+    });
+    audioRef.current = audio;
+    audio.play().then(() => setPlayingIndex(index)).catch(() => {
+      setPlayingIndex(null);
+      audioRef.current = null;
+    });
+  };
 
   const title = hotTake?.weekLabel
     ? `Hot Take · ${hotTake.weekLabel}`
@@ -142,7 +219,10 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
           ) : size === "small" ? (
             /* ── Small: first pick image + answer text ── */
             <div className="flex-1 flex flex-col items-center gap-3 min-h-0">
-              <div className="relative flex-1 w-full min-h-0 rounded-xl overflow-hidden shadow-md">
+              <div
+                className={`relative flex-1 w-full min-h-0 rounded-xl overflow-hidden shadow-md ${resolvedPreviews[0] ? "cursor-pointer group" : ""}`}
+                onClick={() => handlePickClick(0)}
+              >
                 {answer!.imageUrls[0] ? (
                   <Image
                     src={answer!.imageUrls[0]!}
@@ -155,6 +235,13 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
                   <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
                     <span className="material-symbols-outlined text-on-surface-variant/40" style={{ fontSize: 48, fontVariationSettings: "'FILL' 1" }}>
                       local_fire_department
+                    </span>
+                  </div>
+                )}
+                {resolvedPreviews[0] && (
+                  <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${playingIndex === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                    <span className="material-symbols-outlined text-white text-4xl">
+                      {playingIndex === 0 ? "pause" : "play_arrow"}
                     </span>
                   </div>
                 )}
@@ -181,7 +268,11 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
                 return (
                   <div className="flex-1 flex flex-col justify-between min-h-0">
                     {picks.map((pick, i) => (
-                      <div key={i} className="flex items-center gap-3">
+                      <div
+                        key={i}
+                        className={`flex items-center gap-3 ${resolvedPreviews[i] ? "cursor-pointer group" : ""}`}
+                        onClick={() => handlePickClick(i)}
+                      >
                         <div className={`relative ${imgSize} rounded-xl overflow-hidden shrink-0 shadow-sm`}>
                           {answer!.imageUrls[i] ? (
                             <Image
@@ -195,6 +286,13 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
                             <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
                               <span className="material-symbols-outlined text-on-surface-variant/40" style={{ fontSize: imgPx * 0.45, fontVariationSettings: "'FILL' 1" }}>
                                 {iconForType(answer!.musicTypes[i] ?? "")}
+                              </span>
+                            </div>
+                          )}
+                          {resolvedPreviews[i] && (
+                            <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${playingIndex === i ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                              <span className="material-symbols-outlined text-white" style={{ fontSize: imgPx * 0.55 }}>
+                                {playingIndex === i ? "pause" : "play_arrow"}
                               </span>
                             </div>
                           )}
