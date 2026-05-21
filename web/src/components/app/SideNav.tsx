@@ -140,9 +140,6 @@ export default function SideNav({ open, onClose, onSettingsClick, onCreatePost }
                 Legal Notice
               </Link>
             </div>
-            <p className="px-6 text-[0.6875rem] font-semibold uppercase tracking-widest text-on-surface-variant opacity-40">
-              High-Fidelity
-            </p>
           </div>
         </div>
       </aside>
