@@ -1,36 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { Message } from "@/types/chat";
-import { useUserStore } from "@/store/userStore";
-import { chatWs } from "@/lib/ws";
-
-// ── Module-scope helpers (pure, no component state) ───────────────────────────
-
-function dayKey(ts: string): string {
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
-function formatDay(ts: string): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (dayKey(ts) === dayKey(now.toISOString())) return "Today";
-  if (dayKey(ts) === dayKey(yesterday.toISOString())) return "Yesterday";
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
-}
-
-function minuteBucket(ts: string): number {
-  return Math.floor(new Date(ts).getTime() / 60000);
-}
+import { useMessageScroll } from "@/hooks/useMessageScroll";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -47,103 +20,40 @@ interface MessageThreadProps {
   onRetry?: (msg: Message) => void;
 }
 
-export function MessageThread({ messages, conversationId, hasMore, isLoading, isLoadingMore, isDecrypting, onLoadMore, otherLastReadAt, myLastReadAt, onRetry }: MessageThreadProps) {
-  const { backendUserId, backendUsername } = useUserStore();
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const prevScrollHeightRef = useRef(0);
-  const [typists, setTypists] = useState<Map<string, string>>(new Map());
-
-  // Listen to typing events
-  useEffect(() => {
-    const unsubs = [
-      chatWs.on("TYPING", (payload: { conversationId: string; userId: string; username: string; isTyping: boolean }) => {
-        if (payload.conversationId === conversationId && payload.username !== backendUsername) {
-          setTypists(prev => {
-            const next = new Map(prev);
-            if (payload.isTyping) {
-              next.set(payload.userId, payload.username);
-            } else {
-              next.delete(payload.userId);
-            }
-            return next;
-          });
-        }
-      })
-    ];
-    return () => unsubs.forEach(u => u());
-  }, [conversationId, backendUserId, backendUsername]);
-
-  const newestMessageId = messages[0]?.id;
-
-  // Scroll to bottom on mount or new bottom message
-  useEffect(() => {
-    if (!bottomRef.current) return;
-    const id = requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [newestMessageId, typists.size]);
-
-  // After older messages are prepended, restore scroll position so the view doesn't jump
-  useEffect(() => {
-    if (!isLoadingMore && containerRef.current && prevScrollHeightRef.current > 0) {
-      const newScrollHeight = containerRef.current.scrollHeight;
-      containerRef.current.scrollTop = newScrollHeight - prevScrollHeightRef.current;
-      prevScrollHeightRef.current = 0;
-    }
-  }, [isLoadingMore]);
-
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const { scrollTop } = containerRef.current;
-    if (scrollTop < 100 && hasMore && !isLoadingMore) {
-      prevScrollHeightRef.current = containerRef.current.scrollHeight;
-      onLoadMore();
-    }
-  }, [hasMore, isLoadingMore, onLoadMore]);
-
-  // Oldest first (top → bottom); memoized so reverse() doesn't run on every render
-  const displayMessages = useMemo(() => [...messages].reverse(), [messages]);
-
-  // Index of the first unread message (from another sender, after myLastReadAt)
-  const newMessagesStartIdx = useMemo(() => {
-    if (!myLastReadAt) return -1;
-    const cutoff = new Date(myLastReadAt).getTime();
-    return displayMessages.findIndex(
-      (msg) => msg.senderId !== backendUserId && new Date(msg.createdAt).getTime() > cutoff
-    );
-  }, [displayMessages, myLastReadAt, backendUserId]);
-
-  const newMessagesSeparatorRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToNewRef = useRef(false);
-
-  // Scroll to the "new messages" separator once on initial load if there are unread messages
-  useEffect(() => {
-    if (hasScrolledToNewRef.current || newMessagesStartIdx === -1 || !newMessagesSeparatorRef.current) return;
-    hasScrolledToNewRef.current = true;
-    const id = requestAnimationFrame(() => {
-      newMessagesSeparatorRef.current?.scrollIntoView({ behavior: "auto", block: "center" });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [newMessagesStartIdx]);
-
-  // Index of the last message sent by the current user that the other participant has seen
-  const lastSeenIdx = useMemo(() => {
-    if (!otherLastReadAt) return -1;
-    return displayMessages.reduce((found, msg, idx) => {
-      if (
-        msg.senderId === backendUserId &&
-        msg.status !== "sending" &&
-        new Date(otherLastReadAt) >= new Date(msg.createdAt)
-      ) {
-        return idx;
-      }
-      return found;
-    }, -1);
-  }, [displayMessages, otherLastReadAt, backendUserId]);
-
-  const typistList = useMemo(() => Array.from(typists.values()), [typists]);
+export function MessageThread({
+  messages,
+  conversationId,
+  hasMore,
+  isLoading,
+  isLoadingMore,
+  isDecrypting,
+  onLoadMore,
+  otherLastReadAt,
+  myLastReadAt,
+  onRetry,
+}: MessageThreadProps) {
+  const {
+    containerRef,
+    bottomRef,
+    newMessagesSeparatorRef,
+    displayMessages,
+    typistList,
+    newMessagesStartIdx,
+    lastSeenIdx,
+    backendUserId,
+    handleScroll,
+    shouldShowDateSeparator,
+    isLastInGroup,
+    formatDayLabel,
+  } = useMessageScroll(
+    messages,
+    conversationId,
+    hasMore,
+    isLoadingMore,
+    onLoadMore,
+    otherLastReadAt,
+    myLastReadAt
+  );
 
   return (
     <div
@@ -151,6 +61,7 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
       ref={containerRef}
       onScroll={handleScroll}
     >
+      {/* Loading indicator */}
       {isLoadingMore && (
         <div className="sticky top-4 flex justify-center z-10 pointer-events-none">
           <div className="flex items-center gap-2 bg-surface-container shadow-md rounded-full px-4 py-2">
@@ -160,6 +71,7 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
         </div>
       )}
 
+      {/* Beginning of conversation */}
       {!hasMore && messages.length > 0 && (
         <div className="flex justify-center py-6">
           <span className="text-[11px] text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
@@ -168,10 +80,11 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
         </div>
       )}
 
+      {/* Empty state */}
       {messages.length === 0 && !isLoadingMore && (
         <div className="h-full flex items-center justify-center flex-col text-center space-y-3">
           <div className="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center">
-             <span className="text-2xl">👋</span>
+            <span className="text-2xl">👋</span>
           </div>
           <h3 className="text-lg font-semibold">Say hello!</h3>
           <p className="text-sm text-on-surface-variant max-w-[200px]">
@@ -180,6 +93,7 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
         </div>
       )}
 
+      {/* Loading skeleton */}
       {(isDecrypting || isLoading) && (
         <div className="flex flex-col space-y-3 animate-pulse">
           {[55, 35, 70, 45, 80, 30, 60].map((w, i) => (
@@ -193,21 +107,16 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
         </div>
       )}
 
+      {/* Message list */}
       <div className={`flex flex-col space-y-1 ${(isDecrypting || isLoading) ? "invisible" : ""}`}>
         {displayMessages.map((msg, idx) => {
           const isMine = msg.senderId === backendUserId;
-
-          const next = displayMessages[idx + 1];
-          const isLastInGroup =
-            !next ||
-            next.senderUsername !== msg.senderUsername ||
-            minuteBucket(next.createdAt) !== minuteBucket(msg.createdAt);
-
-          const prev = displayMessages[idx - 1];
-          const showDateSeparator = !prev || dayKey(prev.createdAt) !== dayKey(msg.createdAt);
+          const showTime = isLastInGroup(idx);
+          const showDateSeparator = shouldShowDateSeparator(idx);
 
           return (
             <div key={msg.id || msg.tempId}>
+              {/* New messages separator */}
               {idx === newMessagesStartIdx && (
                 <div ref={newMessagesSeparatorRef} className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-primary/25" />
@@ -215,20 +124,26 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
                   <div className="flex-1 h-px bg-primary/25" />
                 </div>
               )}
+
+              {/* Date separator */}
               {showDateSeparator && (
                 <div className="flex justify-center my-4">
                   <span className="text-[11px] text-on-surface-variant font-medium bg-surface-container px-3 py-1 rounded-full">
-                    {formatDay(msg.createdAt)}
+                    {formatDayLabel(msg.createdAt)}
                   </span>
                 </div>
               )}
+
+              {/* Message bubble */}
               <MessageBubble
                 message={msg}
                 isMine={isMine}
-                showTime={isLastInGroup}
-                isLastInGroup={isLastInGroup}
+                showTime={showTime}
+                isLastInGroup={isLastInGroup(idx)}
                 onRetry={msg.status === "failed" && onRetry ? () => onRetry(msg) : undefined}
               />
+
+              {/* Seen indicator */}
               {idx === lastSeenIdx && (
                 <p className="text-[11px] text-on-surface-variant text-right pr-1 -mt-2 mb-2">
                   Seen
@@ -238,14 +153,18 @@ export function MessageThread({ messages, conversationId, hasMore, isLoading, is
           );
         })}
 
-        {typistList.map(username => (
+        {/* Typing indicators */}
+        {typistList.map((username) => (
           <div key={username} className="mb-4">
             <TypingIndicator username={username} />
           </div>
         ))}
 
+        {/* Bottom anchor */}
         <div ref={bottomRef} className="h-1 w-full" />
       </div>
     </div>
   );
 }
+
+MessageThread.displayName = "MessageThread";

@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.groupys.app",
+        "paths": ["/auth/*", "/invite/*"]
+      }
+    ]
+  }
+}

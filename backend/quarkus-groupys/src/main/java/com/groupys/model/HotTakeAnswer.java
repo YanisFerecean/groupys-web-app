@@ -32,12 +32,13 @@ public class HotTakeAnswer {
     @JoinColumn(name = "user_id", nullable = false)
     public User user;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     public String answer;
 
+    @Column(columnDefinition = "TEXT")
     public String imageUrl;
 
-    @Column(length = 20)
+    @Column(columnDefinition = "TEXT")
     public String musicType;
 
     @Column

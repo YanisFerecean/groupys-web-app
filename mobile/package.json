@@ -30,6 +30,7 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
+    "@tanstack/react-query": "^5.99.1",
     "@vimeiro-co/react-native-html-to-markdown": "^1.0.8",
     "buffer": "^6.0.3",
     "expo": "^55.0.9",

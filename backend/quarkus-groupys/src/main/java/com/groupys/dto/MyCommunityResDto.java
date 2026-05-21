@@ -10,9 +10,12 @@ public record MyCommunityResDto(
         String genre,
         String imageUrl,
         String bannerUrl,
+        String iconType,
+        String iconUrl,
         List<String> tags,
         int memberCount,
         Instant joinedAt,
-        long postCount
+        long postCount,
+        String role
 ) {
 }

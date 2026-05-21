@@ -38,8 +38,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  const { getToken } = await auth();
-  const token = await getToken();
+  const authHeader = request.headers.get("Authorization");
+  let token: string | null = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    const { getToken } = await auth();
+    token = await getToken();
+  }
   if (!token) {
     return NextResponse.json({ results: [] }, { status: 401 });
   }

@@ -57,7 +57,21 @@
       "Bash(\"/c/Uni/Projects/groupys-web-app/backend/quarkus-groupys/src/main/resources/application.properties\")",
       "Bash(JAVA_HOME=\"\" ./mvnw compile -q)",
       "Bash(find C:UniProjectsgroupys-web-app -type f -name *Match* -o -name *Friend* -o -name *Follow* -o -name *Connection*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(/home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test *)",
+      "Read(//usr/lib/**)",
+      "Bash(java --version)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test -Dtest=MusicServiceTest -q)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test -Dtest=MusicServiceTest)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn clean test -Dtest=MusicServiceTest)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test -Dtest='MusicServiceTest,DiscoveryServiceTest,DiscoveryServiceResilienceTest')",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn -q compile)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn -q test -Dtest='MusicServiceTest,DiscoveryServiceTest,DiscoveryServiceResilienceTest')",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.jdks/openjdk-26/bin/javac --version)",
+      "Bash(mvn --version)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn compile -q)",
+      "Bash(JAVA_HOME=/home/yanis/.jdks/openjdk-26 /home/yanis/.local/share/JetBrains/Toolbox/apps/intellij-idea/plugins/maven/lib/maven3/bin/mvn test -pl . -Dtest=MusicServiceTest -q)"
     ]
   }
 }

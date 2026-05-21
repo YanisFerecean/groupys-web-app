@@ -1,9 +1,12 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Message } from "@/types/chat";
 import { fetchMessages, postMessage, ApiError } from "@/lib/chat-api";
 import { chatWs } from "@/lib/ws";
 import { useAuth } from "@clerk/nextjs";
 import { isEncrypted } from "@/lib/crypto";
+import { useMessageCrypto } from "./useMessageCrypto";
 
 const MAX_MESSAGES = 300;
 
@@ -15,31 +18,21 @@ export function useMessages(
   encryptFn?: CryptFn
 ) {
   const { getToken } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [rateLimitError, setRateLimitError] = useState(false);
   const rateLimitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep a ref so the load function always uses the latest decryptFn without
-  // being a reactive dependency (which would cause unnecessary re-fetches).
-  const decryptFnRef = useRef(decryptFn);
-  useEffect(() => { decryptFnRef.current = decryptFn; }, [decryptFn]);
+  // Use extracted crypto hook
+  const { messages, setMessages, decryptBatch, isDecrypting } = useMessageCrypto([], decryptFn);
 
-  const decryptBatch = useCallback(async (msgs: Message[]): Promise<Message[]> => {
-    const fn = decryptFnRef.current;
-    if (!fn) return msgs;
-    return Promise.all(
-      msgs.map(async (m) => {
-        if (!isEncrypted(m.content)) return m;
-        const content = await fn(m.content).catch(() => "[Encrypted message — decryption failed]");
-        return { ...m, content };
-      })
-    );
-  }, []);
+  // Encrypt function ref
+  const encryptFnRef = useRef(encryptFn);
+  useEffect(() => {
+    encryptFnRef.current = encryptFn;
+  }, [encryptFn]);
 
-  // Initial load — runs when conversationId changes (not when decryptFn changes to avoid double fetches).
-  // Uses decryptFnRef so it decrypts immediately if the key is already available.
+  // Initial load
   useEffect(() => {
     if (!conversationId) {
       setMessages([]);
@@ -65,34 +58,12 @@ export function useMessages(
     }
 
     load();
-    return () => { isMounted = false; };
-  }, [conversationId, getToken, decryptBatch]);
+    return () => {
+      isMounted = false;
+    };
+  }, [conversationId, getToken, decryptBatch, setMessages]);
 
-  // When decryptFn becomes available after messages are already loaded, decrypt them in-place.
-  // This handles the case where messages loaded before the crypto key was ready.
-  useEffect(() => {
-    if (!decryptFn) return;
-    let isMounted = true;
-
-    const snapshot = messages; // capture outside setter to avoid async-in-setter
-    const hasEncrypted = snapshot.some((m) => isEncrypted(m.content));
-    if (!hasEncrypted) return;
-
-    Promise.all(
-      snapshot.map(async (m) => {
-        if (!isEncrypted(m.content)) return m;
-        const content = await decryptFn(m.content).catch(() => "[Encrypted message — decryption failed]");
-        return { ...m, content };
-      })
-    ).then((decrypted) => {
-      if (isMounted) setMessages(decrypted);
-    });
-
-    return () => { isMounted = false; };
-  }, [decryptFn]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Real-time subscription — only re-registers when conversationId changes.
-  // Uses decryptFnRef so the handler always has the latest key without being a reactive dep.
+  // Real-time subscription
   useEffect(() => {
     if (!conversationId) return;
 
@@ -100,10 +71,13 @@ export function useMessages(
       chatWs.on("MESSAGE_NEW", async (payload: Message) => {
         if (payload.conversationId !== conversationId) return;
 
+        // Decrypt incoming message
         let content = payload.content;
-        const fn = decryptFnRef.current;
+        const fn = decryptFn;
         if (fn && isEncrypted(content)) {
-          content = await fn(content).catch(() => "[Encrypted message — decryption failed]");
+          content = await fn(content).catch(
+            () => "[Encrypted message — decryption failed]"
+          );
         }
         const msg = { ...payload, content };
 
@@ -141,73 +115,113 @@ export function useMessages(
     ];
 
     return () => unsubs.forEach((u) => u());
-  }, [conversationId]);
+  }, [conversationId, decryptFn, setMessages]);
 
-  const loadMore = useCallback(async (page: number) => {
-    if (!conversationId || isLoading || !hasMore) return;
-    setIsLoading(true);
-    try {
-      const token = await getToken();
-      const msgs = await fetchMessages(conversationId, page, 30, token);
-      if (msgs.length < 30) setHasMore(false);
+  const loadMore = useCallback(
+    async (page: number) => {
+      if (!conversationId || isLoading || !hasMore) return;
+      setIsLoading(true);
+      try {
+        const token = await getToken();
+        const msgs = await fetchMessages(conversationId, page, 30, token);
+        if (msgs.length < 30) setHasMore(false);
 
-      const decrypted = await decryptBatch(msgs);
+        const decrypted = await decryptBatch(msgs);
 
-      setMessages((prev) => {
-        const existingIds = new Set(prev.map((m) => m.id));
-        const fresh = decrypted.filter((m) => !existingIds.has(m.id));
-        const combined = [...prev, ...fresh];
-        return combined.length > MAX_MESSAGES ? combined.slice(0, MAX_MESSAGES) : combined;
-      });
-    } catch (e) {
-      console.error("loadMore failed", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [conversationId, isLoading, hasMore, getToken, decryptBatch]);
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const fresh = decrypted.filter((m) => !existingIds.has(m.id));
+          const combined = [...prev, ...fresh];
+          return combined.length > MAX_MESSAGES
+            ? combined.slice(0, MAX_MESSAGES)
+            : combined;
+        });
+      } catch (e) {
+        console.error("loadMore failed", e);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [conversationId, isLoading, hasMore, getToken, decryptBatch, setMessages]
+  );
 
-  const sendMessage = useCallback(async (content: string, senderId: string, senderUsername: string) => {
-    if (!conversationId) return;
+  const sendMessage = useCallback(
+    async (content: string, senderId: string, senderUsername: string) => {
+      if (!conversationId) return;
 
-    const tempId = Math.random().toString(36).substring(7);
-    const tempMsg: Message = {
-      id: `temp-${tempId}`,
-      conversationId,
-      senderId,
-      senderUsername,
-      senderDisplayName: null,
-      senderProfileImage: null,
-      content, // plaintext for optimistic display
-      messageType: "text",
-      isDeleted: false,
-      replyToId: null,
-      createdAt: new Date().toISOString(),
-      tempId,
-      status: "sending",
-    };
+      const tempId = Math.random().toString(36).substring(7);
+      const tempMsg: Message = {
+        id: `temp-${tempId}`,
+        conversationId,
+        senderId,
+        senderUsername,
+        senderDisplayName: null,
+        senderProfileImage: null,
+        content,
+        messageType: "text",
+        isDeleted: false,
+        replyToId: null,
+        createdAt: new Date().toISOString(),
+        tempId,
+        status: "sending",
+      };
 
-    setMessages((prev) => [tempMsg, ...prev]);
+      setMessages((prev) => [tempMsg, ...prev]);
 
-    try {
-      const token = await getToken();
-      const toSend = encryptFn ? await encryptFn(content) : content;
-      const saved = await postMessage(conversationId, toSend, token);
+      try {
+        const token = await getToken();
+        const toSend = encryptFn ? await encryptFn(content) : content;
+        const saved = await postMessage(conversationId, toSend, token);
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.tempId === tempId);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...saved, status: "sent", content };
+          return updated;
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 429) {
+          if (rateLimitTimerRef.current) clearTimeout(rateLimitTimerRef.current);
+          setRateLimitError(true);
+          rateLimitTimerRef.current = setTimeout(() => setRateLimitError(false), 4000);
+          setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+        } else {
+          console.error("Failed to send message:", err);
+          setMessages((prev) => {
+            const idx = prev.findIndex((m) => m.tempId === tempId);
+            if (idx === -1) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], status: "failed" };
+            return updated;
+          });
+        }
+      }
+    },
+    [conversationId, getToken, encryptFn, setMessages]
+  );
+
+  const resendMessage = useCallback(
+    async (tempId: string, content: string) => {
+      if (!conversationId) return;
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.tempId === tempId);
         if (idx === -1) return prev;
         const updated = [...prev];
-        updated[idx] = { ...saved, status: "sent", content }; // keep plaintext in state
+        updated[idx] = { ...updated[idx], status: "sending" };
         return updated;
       });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        if (rateLimitTimerRef.current) clearTimeout(rateLimitTimerRef.current);
-        setRateLimitError(true);
-        rateLimitTimerRef.current = setTimeout(() => setRateLimitError(false), 4000);
-        // Remove the optimistic message — it was never accepted by the server
-        setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
-      } else {
-        console.error("Failed to send message:", err);
+      try {
+        const token = await getToken();
+        const toSend = encryptFn ? await encryptFn(content) : content;
+        const saved = await postMessage(conversationId, toSend, token);
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.tempId === tempId);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...saved, status: "sent", content };
+          return updated;
+        });
+      } catch {
         setMessages((prev) => {
           const idx = prev.findIndex((m) => m.tempId === tempId);
           if (idx === -1) return prev;
@@ -216,41 +230,18 @@ export function useMessages(
           return updated;
         });
       }
-    }
-  }, [conversationId, getToken, encryptFn]);
+    },
+    [conversationId, getToken, encryptFn, setMessages]
+  );
 
-  const resendMessage = useCallback(async (tempId: string, content: string) => {
-    if (!conversationId) return;
-    setMessages((prev) => {
-      const idx = prev.findIndex((m) => m.tempId === tempId);
-      if (idx === -1) return prev;
-      const updated = [...prev];
-      updated[idx] = { ...updated[idx], status: "sending" };
-      return updated;
-    });
-    try {
-      const token = await getToken();
-      const toSend = encryptFn ? await encryptFn(content) : content;
-      const saved = await postMessage(conversationId, toSend, token);
-      setMessages((prev) => {
-        const idx = prev.findIndex((m) => m.tempId === tempId);
-        if (idx === -1) return prev;
-        const updated = [...prev];
-        updated[idx] = { ...saved, status: "sent", content }; // keep plaintext
-        return updated;
-      });
-    } catch {
-      setMessages((prev) => {
-        const idx = prev.findIndex((m) => m.tempId === tempId);
-        if (idx === -1) return prev;
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], status: "failed" };
-        return updated;
-      });
-    }
-  }, [conversationId, getToken, encryptFn]);
-
-  const isDecrypting = messages.length > 0 && messages.some((m) => isEncrypted(m.content));
-
-  return { messages, isLoading, hasMore, loadMore, sendMessage, resendMessage, rateLimitError, isDecrypting };
+  return {
+    messages,
+    isLoading,
+    hasMore,
+    loadMore,
+    sendMessage,
+    resendMessage,
+    rateLimitError,
+    isDecrypting,
+  };
 }

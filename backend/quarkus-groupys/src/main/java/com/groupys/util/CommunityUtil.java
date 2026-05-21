@@ -21,7 +21,7 @@ public final class CommunityUtil {
                 community.iconType,
                 community.iconEmoji,
                 community.iconUrl,
-                community.tags != null ? community.tags : java.util.List.of(),
+                community.tags != null ? new java.util.ArrayList<>(community.tags) : java.util.List.of(),
                 community.artist != null ? community.artist.getId() : null,
                 community.memberCount,
                 community.createdBy != null ? community.createdBy.id : null,

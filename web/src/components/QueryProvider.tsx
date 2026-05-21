@@ -11,7 +11,7 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
         defaultOptions: {
           queries: {
             // Stale-while-revalidate pattern
-            staleTime: 30 * 1000, // Data is fresh for 30 seconds
+            staleTime: 60 * 1000, // Data is fresh for 60 seconds (standardized)
             gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
             refetchOnWindowFocus: false, // Avoid refetching when switching tabs
             retry: 2, // Retry failed requests 2 times

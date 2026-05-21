@@ -9,6 +9,15 @@ import AuthMedia from "@/components/ui/AuthMedia";
 import MediaLightbox, { LightboxItem } from "@/components/ui/MediaLightbox";
 import { resizeImage } from "@/lib/imageResize";
 import { toast } from "sonner";
+import EditCommunityModal from "@/components/discover/EditCommunityModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -22,6 +31,8 @@ interface CommunityRes {
   country: string;
   imageUrl: string;
   bannerUrl: string | null;
+  iconType: string | null;
+  iconUrl: string | null;
   tags: string[];
   artistId: number;
   memberCount: number;
@@ -97,18 +108,22 @@ const HERO_COLORS = [
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function MemberRow({ member }: { member: MemberRes }) {
+  const [avatarError, setAvatarError] = useState(false);
   return (
     <div className="flex items-center gap-3 py-3 px-2">
-      {member.profileImage ? (
-        <Image
-          src={member.profileImage}
-          alt={member.displayName || member.username}
-          width={40}
-          height={40}
-          className="rounded-full object-cover aspect-square"
-        />
+      {member.profileImage && !avatarError ? (
+        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+          <Image
+            src={member.profileImage}
+            alt={member.displayName || member.username}
+            width={40}
+            height={40}
+            className="object-cover w-full h-full"
+            onError={() => setAvatarError(true)}
+          />
+        </div>
       ) : (
-        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
           <span className="material-symbols-outlined text-on-surface-variant/40 text-lg">
             person
           </span>
@@ -452,9 +467,12 @@ export default function CommunityDetail({ id }: { id: string }) {
   const [posts, setPosts] = useState<PostRes[]>([]);
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [membersExpanded, setMembersExpanded] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "most_liked" | "most_disliked" | "most_commented">("newest");
 
@@ -518,6 +536,7 @@ export default function CommunityDetail({ id }: { id: string }) {
           setCommunity(communityData);
           setMembers(membersData);
           setJoined(membershipData.member);
+          setIsOwner(membershipData.owner ?? false);
           setPosts(postsData);
         }
       } catch (err) {
@@ -566,32 +585,56 @@ export default function CommunityDetail({ id }: { id: string }) {
     }
   }, [community, getToken]);
 
-  const handleToggleJoin = useCallback(async () => {
+  const handleJoin = useCallback(async () => {
     setJoining(true);
     try {
       const token = await getToken();
-      const res = await fetch(
-        `${API_URL}/communities/${id}/${joined ? "leave" : "join"}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (!res.ok) throw new Error("Failed");
+      const res = await fetch(`${API_URL}/communities/${id}/join`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Failed to join (HTTP ${res.status})`);
       const updated: CommunityRes = await res.json();
       setCommunity(updated);
-      setJoined(!joined);
-
+      setJoined(true);
+      toast.success("Joined community");
       const membersRes = await fetch(`${API_URL}/communities/${id}/members`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (membersRes.ok) setMembers(await membersRes.json());
     } catch (err) {
-      console.error("Join/leave error:", err);
+      console.error("Join error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to join community");
     } finally {
       setJoining(false);
     }
-  }, [id, getToken, joined]);
+  }, [id, getToken]);
+
+  const handleLeave = useCallback(async () => {
+    setLeaveConfirmOpen(false);
+    setJoining(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/communities/${id}/leave`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Failed to leave (HTTP ${res.status})`);
+      const updated: CommunityRes = await res.json();
+      setCommunity(updated);
+      setJoined(false);
+      toast.success("Left community");
+      const membersRes = await fetch(`${API_URL}/communities/${id}/members`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (membersRes.ok) setMembers(await membersRes.json());
+    } catch (err) {
+      console.error("Leave error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to leave community");
+    } finally {
+      setJoining(false);
+    }
+  }, [id, getToken]);
 
   const handleReact = useCallback(
     async (postId: string, type: "like" | "dislike") => {
@@ -706,7 +749,7 @@ export default function CommunityDetail({ id }: { id: string }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-        {currentMember?.role === "owner" && (
+        {isOwner && (
           <>
             <input
               ref={bannerInputRef}
@@ -829,17 +872,19 @@ export default function CommunityDetail({ id }: { id: string }) {
                     <p className="text-on-surface-variant text-xs mt-0.5">posts</p>
                   </div>
                   <div className="ml-auto">
-                    <button
-                      onClick={handleToggleJoin}
-                      disabled={joining}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
-                        joined
-                          ? "bg-surface-container-high text-on-surface hover:bg-surface-container"
-                          : "bg-primary text-on-primary hover:opacity-90"
-                      } disabled:opacity-50`}
-                    >
-                      {joining ? "…" : joined ? "Joined ✓" : "Join"}
-                    </button>
+                    {!isOwner && (
+                      <button
+                        onClick={joined ? () => setLeaveConfirmOpen(true) : handleJoin}
+                        disabled={joining}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
+                          joined
+                            ? "bg-surface-container-high text-on-surface hover:bg-error/15 hover:text-error"
+                            : "bg-primary text-on-primary hover:opacity-90"
+                        } disabled:opacity-50`}
+                      >
+                        {joining ? "…" : joined ? "Joined ✓" : "Join"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -909,6 +954,17 @@ export default function CommunityDetail({ id }: { id: string }) {
                         {owner.displayName || owner.username}
                       </span>
                     </p>
+                  )}
+
+                  {/* Owner actions */}
+                  {isOwner && (
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-on-surface bg-surface-container-high hover:bg-surface-container transition-colors mt-1"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings</span>
+                      Edit Community
+                    </button>
                   )}
                 </div>
               </div>
@@ -1005,6 +1061,39 @@ export default function CommunityDetail({ id }: { id: string }) {
           </aside>
         </div>
       </div>
+
+      {editModalOpen && (
+        <EditCommunityModal
+          community={community}
+          onClose={() => setEditModalOpen(false)}
+          onSaved={(updated) => { setCommunity(updated); setEditModalOpen(false); }}
+        />
+      )}
+
+      <Dialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+        <DialogContent className="max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Leave community?</DialogTitle>
+            <DialogDescription>
+              You can rejoin {community?.name} at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setLeaveConfirmOpen(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleLeave}
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-error text-white hover:opacity-90 transition-opacity"
+            >
+              Leave
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

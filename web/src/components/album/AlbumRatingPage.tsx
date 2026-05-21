@@ -69,8 +69,8 @@ function ScorePicker({ value, onChange }: { value: number; onChange: (v: number)
   const display = hovered ?? value;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-0.5">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((star) => (
           <button
             key={star}
@@ -78,12 +78,12 @@ function ScorePicker({ value, onChange }: { value: number; onChange: (v: number)
             onClick={() => onChange(star)}
             onMouseEnter={() => setHovered(star)}
             onMouseLeave={() => setHovered(null)}
-            className="transition-transform hover:scale-110 active:scale-95"
+            className="p-0.5 transition-transform hover:scale-110 active:scale-95"
             aria-label={`Rate ${star}`}
           >
             <span
-              className={`material-symbols-outlined text-2xl transition-colors ${
-                star <= display ? "text-primary" : "text-outline"
+              className={`material-symbols-outlined text-[22px] transition-colors ${
+                star <= display ? "text-primary" : "text-outline/40"
               }`}
               style={{ fontVariationSettings: star <= display ? "'FILL' 1" : "'FILL' 0" }}
             >
@@ -91,11 +91,14 @@ function ScorePicker({ value, onChange }: { value: number; onChange: (v: number)
             </span>
           </button>
         ))}
-        <span className={`ml-2 text-xl font-extrabold tabular-nums ${scoreColor(value)}`}>
+        <span className={`ml-3 text-2xl font-extrabold tabular-nums leading-none ${scoreColor(value)}`}>
           {value}
         </span>
+        <span className="text-outline text-sm ml-0.5">/10</span>
       </div>
-      <p className={`text-sm font-semibold ${scoreColor(display)}`}>{scoreLabel(display)}</p>
+      <p className={`text-xs font-bold tracking-widest uppercase ${scoreColor(display)}`}>
+        {scoreLabel(display)}
+      </p>
     </div>
   );
 }
@@ -114,8 +117,8 @@ function RatingCard({
   });
 
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${isOwn ? "border-primary/30 bg-primary/5" : "border-outline-variant bg-surface-container-lowest"}`}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={`rounded-2xl p-4 flex flex-col gap-3 ${isOwn ? "bg-primary/8 border border-primary/20" : "bg-surface-container-lowest border border-outline-variant/60"}`}>
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {rating.profileImage ? (
             <Image
@@ -123,10 +126,10 @@ function RatingCard({
               alt={rating.username}
               width={36}
               height={36}
-              className="rounded-full object-cover shrink-0"
+              className="w-9 h-9 rounded-full object-cover shrink-0"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 text-sm font-bold text-on-surface-variant">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-sm font-bold text-primary">
               {(rating.displayName ?? rating.username)[0].toUpperCase()}
             </div>
           )}
@@ -137,15 +140,17 @@ function RatingCard({
             <p className="text-xs text-outline">{date}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <span className={`text-2xl font-extrabold tabular-nums ${scoreColor(rating.score)}`}>
-            {rating.score}
-          </span>
-          <span className="text-outline text-base">/10</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-baseline gap-0.5">
+            <span className={`text-xl font-extrabold tabular-nums ${scoreColor(rating.score)}`}>
+              {rating.score}
+            </span>
+            <span className="text-outline text-xs">/10</span>
+          </div>
           {isOwn && onDelete && (
             <button
               onClick={onDelete}
-              className="ml-2 text-outline hover:text-error transition-colors"
+              className="w-7 h-7 ml-1 rounded-full flex items-center justify-center text-outline/60 hover:text-error hover:bg-error/8 transition-all"
               aria-label="Delete rating"
             >
               <span className="material-symbols-outlined text-base">delete</span>
@@ -178,7 +183,7 @@ function TrackRow({
 
   return (
     <button
-      className={`group flex items-center gap-4 w-full text-left px-4 py-3 rounded-2xl transition-colors ${
+      className={`group flex items-center gap-4 w-full text-left px-4 py-3 transition-colors ${
         isPlaying
           ? "bg-primary/8"
           : hasPreview
@@ -188,8 +193,7 @@ function TrackRow({
       onClick={onPress}
       disabled={!hasPreview}
     >
-      {/* Position / play state */}
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors bg-surface-container-high group-hover:bg-surface-container-highest">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 relative transition-colors bg-surface-container-high group-hover:bg-surface-container-highest">
         {isLoading ? (
           <span className="material-symbols-outlined text-primary text-base animate-spin">sync</span>
         ) : isPlaying ? (
@@ -202,32 +206,32 @@ function TrackRow({
           </span>
         ) : null}
         {!isLoading && !isPlaying && (
-          <span className={`text-sm font-bold tabular-nums text-on-surface-variant absolute ${hasPreview ? "group-hover:opacity-0 transition-opacity" : ""}`}>
+          <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums text-on-surface-variant ${hasPreview ? "group-hover:opacity-0 transition-opacity" : ""}`}>
             {track.trackPosition ?? "·"}
           </span>
         )}
       </div>
 
-      {/* Title */}
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-semibold truncate transition-colors ${isPlaying ? "text-primary" : "text-on-surface"}`}>
           {track.title}
         </p>
-        {hasPreview && !isPlaying && (
-          <p className="text-[11px] text-outline mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            Preview
-          </p>
-        )}
-        {isPlaying && (
-          <p className="text-[11px] text-primary mt-0.5">Now playing</p>
-        )}
       </div>
 
-      {/* Duration */}
       {duration && (
         <span className="text-xs text-on-surface-variant tabular-nums shrink-0">{duration}</span>
       )}
     </button>
+  );
+}
+
+// ── Section heading ───────────────────────────────────────────────────────────
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-bold tracking-widest uppercase text-outline mb-4">
+      {children}
+    </h3>
   );
 }
 
@@ -247,6 +251,7 @@ export default function AlbumRatingPage({ id }: { id: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [myRatingId, setMyRatingId] = useState<string | null>(null);
+  const [showTracks, setShowTracks] = useState(false);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -400,108 +405,168 @@ export default function AlbumRatingPage({ id }: { id: string }) {
   const cover = album.coverXl ?? album.coverBig ?? album.coverMedium ?? album.coverSmall ?? null;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Hero */}
-      <div className="relative h-56 sm:h-72 -mx-px overflow-hidden rounded-b-3xl lg:rounded-3xl lg:mt-6 lg:mx-6">
-        {cover ? (
-          <Image src={cover} alt={album.title} fill className="object-cover" />
-        ) : (
-          <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-surface-variant/30 text-7xl">album</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
+    <div className="max-w-4xl mx-auto pb-16">
+
+      {/* ── Album Header ─────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-b-3xl lg:rounded-3xl lg:mt-6">
+        {/* Blurred background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {cover ? (
+            <Image
+              src={cover}
+              alt=""
+              fill
+              className="object-cover scale-110"
+              style={{ filter: "blur(28px)", opacity: 0.55 }}
+            />
+          ) : (
+            <div className="w-full h-full bg-surface-container-high" />
+          )}
+          <div className="absolute inset-0 bg-black/55" />
+        </div>
+
+        {/* Header content */}
+        <div className="relative px-5 pt-5 pb-8">
           <button
             onClick={() => router.back()}
-            className="mb-4 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/50 transition-colors"
+            className="mb-6 w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">arrow_back</span>
           </button>
-          {album.artist?.name && (
-            <button
-              onClick={() => router.push(`/discover/artist/${album.artist!.id}`)}
-              className="text-white/70 text-sm font-medium mb-0.5 hover:text-white transition-colors text-left"
-            >
-              {album.artist.name}
-            </button>
-          )}
-          <h1 className="text-white text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
-            {album.title}
-          </h1>
-        </div>
-      </div>
 
-      <div className="px-6 lg:px-8">
-        {/* Meta + community score */}
-        <div className="flex flex-wrap items-start justify-between gap-4 pt-5">
-          <div className="flex flex-col gap-2">
-            {/* Meta row */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-              {album.releaseDate && <span>{album.releaseDate.slice(0, 4)}</span>}
-              {album.nbTracks != null && <span>{album.nbTracks} tracks</span>}
-              {album.duration != null && <span>{formatTotalDuration(album.duration)}</span>}
-              {album.label && <span className="truncate max-w-[180px]">{album.label}</span>}
-              {album.fans != null && (
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                  {formatCount(album.fans)}
-                </span>
+          <div className="flex gap-5 items-end">
+            {/* Cover card */}
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 shrink-0 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+              {cover ? (
+                <Image src={cover} alt={album.title} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full bg-surface-container-highest flex items-center justify-center">
+                  <span className="material-symbols-outlined text-on-surface-variant/40 text-4xl">album</span>
+                </div>
               )}
             </div>
 
-            {/* Genres */}
-            {album.genres.length > 0 && (
+            {/* Title + meta */}
+            <div className="flex-1 min-w-0 pb-1">
+              {album.artist?.name && (
+                <button
+                  onClick={() => router.push(`/discover/artist/${album.artist!.id}`)}
+                  className="text-white/55 text-xs font-semibold uppercase tracking-widest mb-2 hover:text-white/90 transition-colors text-left"
+                >
+                  {album.artist.name}
+                </button>
+              )}
+              <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight leading-snug mb-3">
+                {album.title}
+              </h1>
               <div className="flex flex-wrap gap-1.5">
+                {album.releaseDate && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/65 text-xs">
+                    {album.releaseDate.slice(0, 4)}
+                  </span>
+                )}
+                {album.nbTracks != null && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/65 text-xs">
+                    {album.nbTracks} tracks
+                  </span>
+                )}
+                {album.duration != null && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/65 text-xs">
+                    {formatTotalDuration(album.duration)}
+                  </span>
+                )}
+                {album.fans != null && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white/65 text-xs">
+                    <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+                    {formatCount(album.fans)}
+                  </span>
+                )}
                 {album.genres.map((g) => (
-                  <span
-                    key={g}
-                    className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-container-high text-on-surface-variant"
-                  >
+                  <span key={g} className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/35 text-white text-xs font-medium">
                     {g}
                   </span>
                 ))}
               </div>
+            </div>
+
+            {/* Community score */}
+            {avgScore !== null && (
+              <div className="shrink-0 flex flex-col items-center pb-1 px-3 py-2 rounded-xl bg-black/35 backdrop-blur-sm">
+                <div className="flex items-baseline gap-0.5">
+                  <span className={`text-3xl font-extrabold tabular-nums ${scoreColor(Number(avgScore))}`}>
+                    {avgScore}
+                  </span>
+                  <span className="text-white/60 text-sm ml-0.5">/10</span>
+                </div>
+                <p className="text-white/60 text-xs mt-0.5 text-center">
+                  {ratings.length} {ratings.length === 1 ? "rating" : "ratings"}
+                </p>
+              </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Community score */}
-          {avgScore !== null && (
-            <div className="flex flex-col items-end">
-              <div className="flex items-baseline gap-1">
-                <span className={`text-4xl font-extrabold tabular-nums ${scoreColor(Number(avgScore))}`}>
-                  {avgScore}
-                </span>
-                <span className="text-outline text-base">/10</span>
-              </div>
-              <p className="text-xs text-outline mt-0.5">
-                {ratings.length} {ratings.length === 1 ? "rating" : "ratings"}
-              </p>
+      {/* ── Tracklist toggle ─────────────────────────────────────────────────── */}
+      {album.tracks.length > 0 && (
+        <div className="px-5 lg:px-6 mt-4">
+          <button
+            type="button"
+            onClick={() => setShowTracks((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 hover:bg-surface-container transition-colors"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+              <span className="material-symbols-outlined text-base text-outline">queue_music</span>
+              Tracklist
+              <span className="text-outline font-normal">{album.tracks.length}</span>
+            </span>
+            <span
+              className={`material-symbols-outlined text-base text-outline transition-transform duration-200 ${showTracks ? "rotate-180" : ""}`}
+            >
+              expand_more
+            </span>
+          </button>
+          {showTracks && (
+            <div className="mt-2 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl overflow-hidden">
+              {album.tracks.map((track, i) => (
+                <div key={track.id}>
+                  <TrackRow
+                    track={track}
+                    isPlaying={playingId === track.id}
+                    isLoading={loadingId === track.id}
+                    onPress={() => handleTrackPress(track)}
+                  />
+                  {i < album.tracks.length - 1 && (
+                    <div className="mx-4 h-px bg-outline-variant/30" />
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Content ──────────────────────────────────────────────────────────── */}
+      <div className="px-5 lg:px-6 mt-6 space-y-8">
 
         {/* Rate this album */}
-        <section className="pt-8">
-          <h3 className="text-on-surface font-bold text-base mb-4">
-            {myRatingId ? "Your Rating" : "Rate This Album"}
-          </h3>
+        <section>
+          <SectionHeading>{myRatingId ? "Your Rating" : "Rate This Album"}</SectionHeading>
           <form
             onSubmit={handleSubmit}
-            className="bg-surface-container-lowest/65 border border-outline-variant rounded-2xl p-5 flex flex-col gap-4"
+            className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 flex flex-col gap-4"
           >
             <ScorePicker value={score} onChange={setScore} />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-on-surface-variant font-medium">Review</label>
+              <label className="text-xs font-bold tracking-widest uppercase text-outline">Review</label>
               <textarea
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
                 placeholder="Share your thoughts…"
                 rows={3}
                 maxLength={2000}
-                required
-                className="w-full rounded-xl bg-surface-container border border-outline-variant px-3 py-2 text-sm text-on-surface resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-outline"
+                className="w-full rounded-xl bg-surface-container border border-outline-variant px-3 py-2.5 text-sm text-on-surface resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-outline"
               />
             </div>
 
@@ -512,57 +577,43 @@ export default function AlbumRatingPage({ id }: { id: string }) {
               </p>
             )}
 
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 rounded-xl bg-primary text-on-primary font-bold py-2.5 text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {submitting ? "Saving…" : myRatingId ? "Update Rating" : "Submit Rating"}
-              </button>
-              {myRatingId && (
+            <div className="flex items-center justify-between">
+              {myRatingId ? (
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={submitting}
-                  className="rounded-xl border border-outline-variant px-4 py-2.5 text-sm text-on-surface-variant hover:text-error hover:border-error/40 transition-colors disabled:opacity-50"
+                  className="w-9 h-9 rounded-full border border-outline-variant/60 flex items-center justify-center text-outline hover:text-error hover:border-error/50 hover:bg-error/5 transition-all disabled:opacity-50"
+                  aria-label="Delete rating"
                 >
-                  Delete
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
                 </button>
-              )}
+              ) : <div />}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-xl bg-primary text-on-primary font-bold px-8 py-2.5 text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Saving…" : myRatingId ? "Update" : "Submit Rating"}
+              </button>
             </div>
           </form>
         </section>
 
-        {/* Track list */}
-        {album.tracks.length > 0 && (
-          <section className="pt-8">
-            <h3 className="text-on-surface font-bold text-base mb-3">Tracks</h3>
-            <div className="bg-surface-container-lowest/65 border border-outline-variant rounded-2xl overflow-hidden py-1">
-              {album.tracks.map((track, i) => (
-                <div key={track.id}>
-                  <TrackRow
-                    track={track}
-                    isPlaying={playingId === track.id}
-                    isLoading={loadingId === track.id}
-                    onPress={() => handleTrackPress(track)}
-                  />
-                  {i < album.tracks.length - 1 && (
-                    <div className="mx-4 h-px bg-outline-variant/40" />
-                  )}
-                </div>
-              ))}
+        {/* Community ratings */}
+        {ratingsLoading && (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center animate-pulse">
+              <span className="material-symbols-outlined text-primary text-base">star</span>
             </div>
-          </section>
+          </div>
         )}
 
-        {/* Community ratings */}
         {!ratingsLoading && ratings.length > 0 && (
-          <section className="pt-8 pb-12">
-            <h3 className="text-on-surface font-bold text-base mb-4">
-              Community Ratings
-              <span className="text-outline font-normal text-sm ml-2">({ratings.length})</span>
-            </h3>
+          <section>
+            <SectionHeading>
+              Community <span className="font-normal ml-1">{ratings.length}</span>
+            </SectionHeading>
             <div className="flex flex-col gap-3">
               {myRating && (
                 <RatingCard rating={myRating} isOwn onDelete={handleDelete} />
@@ -574,17 +625,10 @@ export default function AlbumRatingPage({ id }: { id: string }) {
           </section>
         )}
 
-        {ratingsLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center animate-pulse">
-              <span className="material-symbols-outlined text-primary text-lg">star</span>
-            </div>
-          </div>
+        {!ratingsLoading && ratings.length === 0 && (
+          <p className="text-outline text-sm">No ratings yet — be the first!</p>
         )}
 
-        {!ratingsLoading && ratings.length === 0 && (
-          <p className="text-outline text-sm pt-2 pb-12">No ratings yet — be the first!</p>
-        )}
       </div>
     </div>
   );

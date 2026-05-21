@@ -15,6 +15,7 @@ import com.groupys.repository.CommunityRepository;
 import com.groupys.repository.UserRepository;
 import com.groupys.util.CountryUtil;
 import com.groupys.util.CommunityUtil;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -59,10 +60,13 @@ public class CommunityService {
                         m.community.genre,
                         m.community.imageUrl,
                         m.community.bannerUrl,
+                        m.community.iconType,
+                        m.community.iconUrl,
                         m.community.tags != null ? m.community.tags : java.util.List.of(),
                         m.community.memberCount,
                         m.joinedAt,
-                        postRepository.countByAuthorAndCommunity(user.id, m.community.id)
+                        postRepository.countByAuthorAndCommunity(user.id, m.community.id),
+                        m.role
                 ))
                 .toList();
     }
@@ -169,53 +173,67 @@ public class CommunityService {
         membership.source = "COMMUNITY_CREATE";
         communityMemberRepository.persist(membership);
 
-        discoveryService.refreshAfterCommunityChange(creator.id, community.id);
+        discoveryService.refreshAfterCommunityChangeSafe(creator.id, community.id);
 
         return CommunityUtil.toDto(community);
     }
 
     @Transactional
     public CommunityResDto join(UUID communityId, String clerkId) {
-        User user = userRepository.findByClerkId(clerkId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        Community community = communityRepository.findByIdOptional(communityId)
-                .orElseThrow(() -> new NotFoundException("Community not found"));
+        try {
+            User user = userRepository.findByClerkId(clerkId)
+                    .orElseThrow(() -> new NotFoundException("User not found"));
+            Community community = communityRepository.findByIdOptional(communityId)
+                    .orElseThrow(() -> new NotFoundException("Community not found"));
 
-        if (communityMemberRepository.findByUserAndCommunity(user.id, communityId).isPresent()) {
+            if (communityMemberRepository.findByUserAndCommunity(user.id, communityId).isPresent()) {
+                return CommunityUtil.toDto(community);
+            }
+
+            CommunityMember membership = new CommunityMember();
+            membership.community = community;
+            membership.user = user;
+            membership.role = "member";
+            membership.source = "USER_JOIN";
+            communityMemberRepository.persist(membership);
+
+            community.memberCount++;
+            discoveryService.refreshAfterCommunityChangeSafe(user.id, community.id);
             return CommunityUtil.toDto(community);
+        } catch (jakarta.ws.rs.WebApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            Log.errorf(e, "Unexpected error in join (community=%s, user=%s)", communityId, clerkId);
+            throw e;
         }
-
-        CommunityMember membership = new CommunityMember();
-        membership.community = community;
-        membership.user = user;
-        membership.role = "member";
-        membership.source = "USER_JOIN";
-        communityMemberRepository.persist(membership);
-
-        community.memberCount++;
-        discoveryService.refreshAfterCommunityChange(user.id, community.id);
-        return CommunityUtil.toDto(community);
     }
 
     @Transactional
     public CommunityResDto leave(UUID communityId, String clerkId) {
-        User user = userRepository.findByClerkId(clerkId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        Community community = communityRepository.findByIdOptional(communityId)
-                .orElseThrow(() -> new NotFoundException("Community not found"));
+        try {
+            User user = userRepository.findByClerkId(clerkId)
+                    .orElseThrow(() -> new NotFoundException("User not found"));
+            Community community = communityRepository.findByIdOptional(communityId)
+                    .orElseThrow(() -> new NotFoundException("Community not found"));
 
-        CommunityMember membership = communityMemberRepository
-                .findByUserAndCommunity(user.id, communityId)
-                .orElseThrow(() -> new NotFoundException("Not a member"));
+            CommunityMember membership = communityMemberRepository
+                    .findByUserAndCommunity(user.id, communityId)
+                    .orElseThrow(() -> new NotFoundException("Not a member"));
 
-        if ("owner".equals(membership.role)) {
-            throw new jakarta.ws.rs.BadRequestException("Owner cannot leave the community");
+            if ("owner".equals(membership.role)) {
+                throw new jakarta.ws.rs.BadRequestException("Owner cannot leave the community");
+            }
+
+            communityMemberRepository.delete(membership);
+            community.memberCount = Math.max(0, community.memberCount - 1);
+            discoveryService.refreshAfterCommunityChangeSafe(user.id, community.id);
+            return CommunityUtil.toDto(community);
+        } catch (jakarta.ws.rs.WebApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            Log.errorf(e, "Unexpected error in leave (community=%s, user=%s)", communityId, clerkId);
+            throw e;
         }
-
-        communityMemberRepository.delete(membership);
-        community.memberCount = Math.max(0, community.memberCount - 1);
-        discoveryService.refreshAfterCommunityChange(user.id, community.id);
-        return CommunityUtil.toDto(community);
     }
 
     public boolean isMember(UUID communityId, String clerkId) {
@@ -253,6 +271,15 @@ public class CommunityService {
         Community community = communityRepository.findByIdOptional(id)
                 .orElseThrow(() -> new NotFoundException("Community not found"));
         community.bannerUrl = bannerUrl;
+        return CommunityUtil.toDto(community);
+    }
+
+    @Transactional
+    public CommunityResDto updateIcon(UUID id, String iconUrl) {
+        Community community = communityRepository.findByIdOptional(id)
+                .orElseThrow(() -> new NotFoundException("Community not found"));
+        community.iconUrl = iconUrl;
+        community.iconType = "IMAGE";
         return CommunityUtil.toDto(community);
     }
 

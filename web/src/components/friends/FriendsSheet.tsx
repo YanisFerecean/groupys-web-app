@@ -26,13 +26,15 @@ import {
 
 function Avatar({ user }: { user: FriendRes }) {
   return user.profileImage ? (
-    <Image
-      src={user.profileImage}
-      alt={user.displayName || user.username}
-      width={40}
-      height={40}
-      className="rounded-full object-cover shrink-0"
-    />
+    <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+      <Image
+        src={user.profileImage}
+        alt={user.displayName || user.username}
+        width={40}
+        height={40}
+        className="object-cover w-full h-full"
+      />
+    </div>
   ) : (
     <div className="w-10 h-10 shrink-0 rounded-full bg-surface-container-high flex items-center justify-center">
       <span className="material-symbols-outlined text-on-surface-variant/40 text-sm">person</span>

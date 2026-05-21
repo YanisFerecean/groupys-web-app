@@ -3,6 +3,7 @@ package com.groupys.resource;
 import com.groupys.model.Genre;
 import com.groupys.service.GenreService;
 import io.quarkus.security.Authenticated;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @Path("/genres")
 @Authenticated
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = "bearerAuth")
 public class GenreResource {

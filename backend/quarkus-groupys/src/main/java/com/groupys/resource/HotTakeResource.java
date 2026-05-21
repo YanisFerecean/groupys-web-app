@@ -7,6 +7,7 @@ import com.groupys.dto.HotTakeResDto;
 import com.groupys.service.HotTakeService;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -25,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 @Path("/hot-takes")
+@RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
 public class HotTakeResource {
 

@@ -353,6 +353,17 @@ export default function HotTakeCard() {
         {/* Answered state */}
         {answered && myAnswer && (
           <div className="px-5 py-4 space-y-2.5">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="material-symbols-outlined text-primary"
+                style={{ fontSize: 15, fontVariationSettings: "'FILL' 1" }}
+              >
+                check_circle
+              </span>
+              <p className="text-xs font-semibold text-primary">
+                {count > 1 ? "Your picks" : "Your pick"}
+              </p>
+            </div>
             {myAnswer.answers.map((ans, i) => (
               <div key={i} className="flex items-center gap-3">
                 {myAnswer.imageUrls[i] ? (
@@ -374,17 +385,8 @@ export default function HotTakeCard() {
                 )}
                 <div className="min-w-0 flex-1">
                   {count > 1 && <p className="text-xs text-on-surface-variant mb-0.5">Pick {i + 1}</p>}
-                  {i === 0 && count === 1 && <p className="text-xs text-on-surface-variant mb-0.5">Your pick</p>}
                   <p className="font-bold text-sm text-on-surface truncate">{ans}</p>
                 </div>
-                {i === 0 && (
-                  <span
-                    className="material-symbols-outlined text-primary ml-auto shrink-0"
-                    style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}
-                  >
-                    check_circle
-                  </span>
-                )}
               </div>
             ))}
           </div>

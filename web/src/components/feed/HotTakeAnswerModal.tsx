@@ -192,10 +192,11 @@ export default function HotTakeAnswerModal({ open, hotTake, onClose, onAnswered 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden gap-0">
-        {/* Gradient header */}
+      {/* overflow-hidden removed so absolute dropdowns aren't clipped; header clips itself */}
+      <DialogContent className="sm:max-w-md p-0 gap-0">
+        {/* Gradient header — clips its own background to the top rounded corners */}
         <div
-          className="px-6 pt-6 pb-5"
+          className="px-6 pt-6 pb-5 rounded-t-2xl overflow-hidden"
           style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 75%, black) 100%)" }}
         >
           <div className="flex items-center gap-2 mb-3">
@@ -231,7 +232,7 @@ export default function HotTakeAnswerModal({ open, hotTake, onClose, onAnswered 
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-3 bg-surface-container-low">
+        <div className="px-6 py-5 space-y-3 bg-surface-container-low rounded-b-2xl">
           {isFreeText ? (
             freeTexts.map((text, i) => (
               <Input

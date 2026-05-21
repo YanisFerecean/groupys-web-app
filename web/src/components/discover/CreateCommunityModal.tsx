@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
 import CountrySelect from "@/components/profile/CountrySelect";
+import { resizeImage } from "@/lib/imageResize";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -37,13 +38,21 @@ export default function CreateCommunityModal({
   const { getToken } = useAuth();
   const router = useRouter();
   const nameRef = useRef<HTMLInputElement>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(`${artistName} Fans`);
   const [country, setCountry] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitLabel, setSubmitLabel] = useState("Create");
   const [error, setError] = useState("");
+
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => nameRef.current?.focus(), 50);
@@ -57,6 +66,33 @@ export default function CreateCommunityModal({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (iconPreview) URL.revokeObjectURL(iconPreview);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    };
+  }, []);
+
+  const handleIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (iconPreview) URL.revokeObjectURL(iconPreview);
+    const resized = await resizeImage(file, 256, 256, true);
+    setIconFile(resized);
+    setIconPreview(URL.createObjectURL(resized));
+    e.target.value = "";
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    const resized = await resizeImage(file, 1500, 500, true);
+    setBannerFile(resized);
+    setBannerPreview(URL.createObjectURL(resized));
+    e.target.value = "";
+  };
 
   const addTag = (tag: string) => {
     const trimmed = tag.trim();
@@ -88,6 +124,7 @@ export default function CreateCommunityModal({
     }
 
     setSubmitting(true);
+    setSubmitLabel("Creating...");
     setError("");
 
     try {
@@ -114,6 +151,29 @@ export default function CreateCommunityModal({
       }
 
       const created = await res.json();
+
+      if (iconFile) {
+        setSubmitLabel("Uploading icon...");
+        const form = new FormData();
+        form.append("file", iconFile, iconFile.name);
+        await fetch(`${API_URL}/communities/${created.id}/icon`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+      }
+
+      if (bannerFile) {
+        setSubmitLabel("Uploading banner...");
+        const form = new FormData();
+        form.append("file", bannerFile, bannerFile.name);
+        await fetch(`${API_URL}/communities/${created.id}/banner`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+      }
+
       toast.success("Community created");
       onCreated();
       router.push(`/discover/community/${created.id}`);
@@ -123,6 +183,7 @@ export default function CreateCommunityModal({
       toast.error(message);
     } finally {
       setSubmitting(false);
+      setSubmitLabel("Create");
     }
   };
 
@@ -154,6 +215,78 @@ export default function CreateCommunityModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-5">
+          {/* Banner + Icon pickers */}
+          <div>
+            {/* Banner */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                className="w-full h-28 rounded-2xl bg-surface-container-high overflow-hidden border-2 border-dashed border-surface-container-highest hover:border-primary/40 transition-colors flex items-center justify-center group"
+              >
+                {bannerPreview ? (
+                  <img
+                    src={bannerPreview}
+                    alt="Banner"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-on-surface-variant group-hover:text-on-surface transition-colors">
+                    <span className="material-symbols-outlined text-2xl">panorama</span>
+                    <span className="text-xs font-medium">Add banner</span>
+                  </div>
+                )}
+                {bannerPreview && (
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="material-symbols-outlined text-white text-2xl">edit</span>
+                  </div>
+                )}
+              </button>
+
+              {/* Icon overlapping banner */}
+              <button
+                type="button"
+                onClick={() => iconInputRef.current?.click()}
+                className="absolute -bottom-6 left-4 w-14 h-14 rounded-2xl bg-surface-container-high border-2 border-surface overflow-hidden hover:border-primary/40 transition-colors flex items-center justify-center group shadow-md"
+              >
+                {iconPreview ? (
+                  <img
+                    src={iconPreview}
+                    alt="Icon"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-on-surface-variant text-xl group-hover:text-on-surface transition-colors">
+                    add_photo_alternate
+                  </span>
+                )}
+                {iconPreview && (
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                    <span className="material-symbols-outlined text-white text-base">edit</span>
+                  </div>
+                )}
+              </button>
+            </div>
+
+            {/* Spacer to clear the overlapping icon */}
+            <div className="h-8" />
+
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerChange}
+            />
+            <input
+              ref={iconInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleIconChange}
+            />
+          </div>
+
           {/* Name */}
           <div>
             <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">
@@ -257,7 +390,7 @@ export default function CreateCommunityModal({
               disabled={submitting || !name.trim()}
               className="flex-1 py-3 rounded-xl text-sm font-bold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submitting ? "Creating..." : "Create"}
+              {submitting ? submitLabel : "Create"}
             </button>
           </div>
         </form>

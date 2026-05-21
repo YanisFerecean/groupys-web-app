@@ -22,11 +22,13 @@ public class CommunityMemberRepository implements PanacheRepositoryBase<Communit
     }
 
     public List<CommunityMember> findByCommunity(UUID communityId) {
-        return find("community.id", communityId).list();
+        return find("FROM CommunityMember cm LEFT JOIN FETCH cm.user LEFT JOIN FETCH cm.community " +
+            "WHERE cm.community.id = ?1", communityId).list();
     }
 
     public List<CommunityMember> findByUser(UUID userId) {
-        return find("user.id", userId).list();
+        return find("FROM CommunityMember cm LEFT JOIN FETCH cm.user LEFT JOIN FETCH cm.community " +
+            "WHERE cm.user.id = ?1", userId).list();
     }
 
     public List<CommunityMember> findByUserLimited(UUID userId, int limit) {

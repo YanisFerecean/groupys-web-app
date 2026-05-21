@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Image from "next/image";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { ArtistSearchResult } from "@/lib/api";
 import { searchArtists, fetchArtistsByGenre } from "@/lib/api";
 
@@ -134,13 +135,13 @@ function SearchResultCard({
 export default function ArtistStep({ selected, onToggle, selectedGenres = [] }: ArtistStepProps) {
   const { getToken } = useAuth();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 300);
   const [searchOpen, setSearchOpen] = useState(false);
   const [results, setResults] = useState<ArtistSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ArtistSearchResult[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const getTokenRef = useRef(getToken);
   useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
@@ -175,31 +176,28 @@ export default function ArtistStep({ selected, onToggle, selectedGenres = [] }: 
   }, []);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length === 0) {
+    if (debouncedQuery.trim().length === 0) {
       setResults([]);
       setIsSearching(false);
       return;
     }
 
-    debounceRef.current = setTimeout(async () => {
+    const search = async () => {
       setIsSearching(true);
       setSearchError(null);
       try {
         const token = await getTokenRef.current();
-        const data = await searchArtists(query.trim(), token, 8);
+        const data = await searchArtists(debouncedQuery.trim(), token, 8);
         setResults(data);
       } catch {
         setSearchError("Search failed. Try again.");
       } finally {
         setIsSearching(false);
       }
-    }, 350);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+
+    search();
+  }, [debouncedQuery]);
 
   const selectedIds = new Set(selected.map((a) => a.id));
   const isQueryActive = searchOpen && query.trim().length > 0;

@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+
 const GENRES = [
   { name: "Pop", emoji: "🎤" },
   { name: "Hip-Hop", emoji: "🎧" },
@@ -23,6 +28,14 @@ interface GenreStepProps {
 }
 
 export default function GenreStep({ selected, onToggle }: GenreStepProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
+
+  const filteredGenres = debouncedSearchQuery.trim()
+    ? GENRES.filter(({ name }) =>
+        name.toLowerCase().includes(debouncedSearchQuery.trim().toLowerCase())
+      )
+    : GENRES;
   return (
     <div className="space-y-5">
       <div className="space-y-1">
@@ -34,8 +47,24 @@ export default function GenreStep({ selected, onToggle }: GenreStepProps) {
         </p>
       </div>
 
+      <div className="relative">
+        <span
+          className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60"
+          style={{ fontSize: 18 }}
+        >
+          search
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search genres…"
+          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-surface-container-high text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-sm font-medium"
+        />
+      </div>
+
       <div className="grid grid-cols-4 gap-2">
-        {GENRES.map(({ name, emoji }) => {
+        {filteredGenres.map(({ name, emoji }) => {
           const isSelected = selected.includes(name);
           return (
             <button
