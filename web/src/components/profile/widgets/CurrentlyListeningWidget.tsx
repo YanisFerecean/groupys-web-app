@@ -25,7 +25,7 @@ export default function CurrentlyListeningWidget({
 }: CurrentlyListeningWidgetProps) {
   const { getToken } = useAuth();
   const [liveTrack, setLiveTrack] = useState(savedTrack);
-  const [resolvedPreview, setResolvedPreview] = useState<string | undefined>(savedTrack?.preview);
+  const [resolvedPreview, setResolvedPreview] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -48,13 +48,9 @@ export default function CurrentlyListeningWidget({
     return () => clearInterval(id);
   }, [musicConnected, getToken, savedTrack]);
 
-  // Resolve preview URL for the track when not stored
+  // Resolve preview URL by always fetching fresh (Deezer URLs expire)
   useEffect(() => {
     const t = musicConnected ? liveTrack : savedTrack;
-    if (t?.preview?.startsWith("http")) {
-      setResolvedPreview(t.preview);
-      return;
-    }
     if (!t?.title) return;
     let cancelled = false;
     void (async () => {

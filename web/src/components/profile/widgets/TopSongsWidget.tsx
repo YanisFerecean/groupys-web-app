@@ -18,7 +18,6 @@ async function resolvePreviewUrl(
   song: { title: string; artist: string; preview?: string },
   token?: string | null,
 ): Promise<string | null> {
-  if (song.preview?.startsWith("http")) return song.preview;
   try {
     const q = encodeURIComponent(`${song.title} ${song.artist}`.trim());
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
