@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import type { ProfileCustomization } from "@/types/profile";
 import { getContrastColor } from "@/lib/utils";
 import WidgetCard from "./WidgetCard";
+import { audioPlayer } from "@/lib/audioPlayer";
 
 interface TopSongsWidgetProps {
   songs?: ProfileCustomization["topSongs"];
@@ -70,11 +71,10 @@ export default function TopSongsWidget({ songs, containerColor, size = "normal",
     };
   }, [visibleSongs, getToken]);
 
-  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
+        audioPlayer.stop();
         audioRef.current = null;
       }
     };
@@ -84,31 +84,19 @@ export default function TopSongsWidget({ songs, containerColor, size = "normal",
     const previewUrl = resolvedPreviews[index];
 
     if (playingIndex === index) {
-      audioRef.current?.pause();
+      audioPlayer.stop();
       audioRef.current = null;
       setPlayingIndex(null);
       return;
     }
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
     if (!previewUrl) return;
 
-    const audio = new Audio(previewUrl);
+    const audio = audioPlayer.play(previewUrl, () => {
+      setPlayingIndex(null);
+      audioRef.current = null;
+    });
     audioRef.current = audio;
-
-    audio.addEventListener("ended", () => {
-      setPlayingIndex(null);
-      audioRef.current = null;
-    });
-
-    audio.addEventListener("error", () => {
-      setPlayingIndex(null);
-      audioRef.current = null;
-    });
 
     audio.play().then(() => {
       setPlayingIndex(index);

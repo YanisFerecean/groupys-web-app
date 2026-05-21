@@ -7,6 +7,7 @@ import type { ProfileCustomization } from "@/types/profile";
 import { fetchMusicCurrentlyPlaying } from "@/lib/appleMusic";
 import { getContrastColor } from "@/lib/utils";
 import WidgetCard from "./WidgetCard";
+import { audioPlayer } from "@/lib/audioPlayer";
 
 const POLL_INTERVAL = 30_000;
 
@@ -78,11 +79,10 @@ export default function CurrentlyListeningWidget({
     return () => { cancelled = true; };
   }, [liveTrack, savedTrack, musicConnected, getToken]);
 
-  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
+        audioPlayer.stop();
         audioRef.current = null;
       }
     };
@@ -95,24 +95,17 @@ export default function CurrentlyListeningWidget({
     if (!resolvedPreview) return;
 
     if (isPlaying) {
-      audioRef.current?.pause();
+      audioPlayer.stop();
       audioRef.current = null;
       setIsPlaying(false);
       return;
     }
 
-    const audio = new Audio(resolvedPreview);
+    const audio = audioPlayer.play(resolvedPreview, () => {
+      setIsPlaying(false);
+      audioRef.current = null;
+    });
     audioRef.current = audio;
-
-    audio.addEventListener("ended", () => {
-      setIsPlaying(false);
-      audioRef.current = null;
-    });
-
-    audio.addEventListener("error", () => {
-      setIsPlaying(false);
-      audioRef.current = null;
-    });
 
     audio.play().then(() => {
       setIsPlaying(true);
