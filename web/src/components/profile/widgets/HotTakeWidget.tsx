@@ -251,7 +251,7 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
               </p>
             </div>
           ) : (
-            /* ── Normal: bigger question + adaptive picks layout ── */
+            /* ── Normal ── */
             <div className="flex-1 flex flex-col gap-3 min-h-0">
               <p
                 className="text-sm font-bold leading-snug shrink-0"
@@ -260,51 +260,75 @@ export default function HotTakeWidget({ username, containerColor, size = "normal
                 {hotTake!.question}
               </p>
 
-              {/* All answer counts: square image left, text right */}
-              {(() => {
-                const imgSize = picks.length === 1 ? "w-14 h-14" : picks.length <= 3 ? "w-11 h-11" : "w-9 h-9";
-                const imgPx = picks.length === 1 ? 56 : picks.length <= 3 ? 44 : 36;
-                const textSize = picks.length === 1 ? "text-sm font-bold" : picks.length <= 3 ? "text-xs font-bold" : "text-[11px] font-semibold";
-                return (
-                  <div className="flex-1 flex flex-col justify-between min-h-0">
-                    {picks.map((pick, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center gap-3 ${resolvedPreviews[i] ? "cursor-pointer group" : ""}`}
-                        onClick={() => handlePickClick(i)}
-                      >
-                        <div className={`relative ${imgSize} rounded-xl overflow-hidden shrink-0 shadow-sm`}>
-                          {answer!.imageUrls[i] ? (
-                            <Image
-                              src={answer!.imageUrls[i]!}
-                              alt={pick}
-                              fill
-                              sizes={`${imgPx}px`}
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
-                              <span className="material-symbols-outlined text-on-surface-variant/40" style={{ fontSize: imgPx * 0.45, fontVariationSettings: "'FILL' 1" }}>
-                                {iconForType(answer!.musicTypes[i] ?? "")}
-                              </span>
-                            </div>
-                          )}
-                          {resolvedPreviews[i] && (
-                            <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${playingIndex === i ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-                              <span className="material-symbols-outlined text-white" style={{ fontSize: imgPx * 0.55 }}>
-                                {playingIndex === i ? "pause" : "play_arrow"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <p className={`${textSize} leading-snug line-clamp-2 min-w-0`} style={{ color: textColor ?? "inherit" }}>
-                          {pick}
-                        </p>
+              {picks.length === 1 && answer!.musicTypes[0] && ["SONG", "ALBUM", "ARTIST"].includes(answer!.musicTypes[0]) ? (
+                /* ── Single media pick: full-width cover like CurrentlyListening ── */
+                <div className="flex-1 flex flex-col gap-3 min-h-0">
+                  <div
+                    className={`relative w-full flex-1 min-h-0 rounded-xl overflow-hidden shadow-lg ${resolvedPreviews[0] ? "cursor-pointer group" : ""}`}
+                    onClick={() => handlePickClick(0)}
+                  >
+                    {answer!.imageUrls[0] ? (
+                      <Image src={answer!.imageUrls[0]!} alt={picks[0]} fill className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
+                        <span className="material-symbols-outlined text-on-surface-variant/40" style={{ fontSize: 40, fontVariationSettings: "'FILL' 1" }}>
+                          {iconForType(answer!.musicTypes[0])}
+                        </span>
                       </div>
-                    ))}
+                    )}
+                    {resolvedPreviews[0] && (
+                      <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${playingIndex === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                        <span className="material-symbols-outlined text-white text-5xl">
+                          {playingIndex === 0 ? "pause" : "play_arrow"}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                );
-              })()}
+                  <p className="text-sm font-bold truncate shrink-0" style={{ color: textColor ?? "inherit" }}>
+                    {picks[0]}
+                  </p>
+                </div>
+              ) : (
+                /* ── Multiple picks: thumbnail list ── */
+                (() => {
+                  const imgSize = picks.length <= 3 ? "w-11 h-11" : "w-9 h-9";
+                  const imgPx = picks.length <= 3 ? 44 : 36;
+                  const textSize = picks.length <= 3 ? "text-xs font-bold" : "text-[11px] font-semibold";
+                  return (
+                    <div className="flex-1 flex flex-col justify-between min-h-0">
+                      {picks.map((pick, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 ${resolvedPreviews[i] ? "cursor-pointer group" : ""}`}
+                          onClick={() => handlePickClick(i)}
+                        >
+                          <div className={`relative ${imgSize} rounded-xl overflow-hidden shrink-0 shadow-sm`}>
+                            {answer!.imageUrls[i] ? (
+                              <Image src={answer!.imageUrls[i]!} alt={pick} fill sizes={`${imgPx}px`} className="object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
+                                <span className="material-symbols-outlined text-on-surface-variant/40" style={{ fontSize: imgPx * 0.45, fontVariationSettings: "'FILL' 1" }}>
+                                  {iconForType(answer!.musicTypes[i] ?? "")}
+                                </span>
+                              </div>
+                            )}
+                            {resolvedPreviews[i] && (
+                              <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${playingIndex === i ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                                <span className="material-symbols-outlined text-white" style={{ fontSize: imgPx * 0.55 }}>
+                                  {playingIndex === i ? "pause" : "play_arrow"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <p className={`${textSize} leading-snug line-clamp-2 min-w-0`} style={{ color: textColor ?? "inherit" }}>
+                            {pick}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
             </div>
           )}
         </WidgetCard>
